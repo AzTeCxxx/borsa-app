@@ -1,0 +1,21 @@
+{
+  "acik": {
+    "THYAO": {
+      "giris": 818.74,
+      "stop": 782.4,
+      "hedef1": 873.24,
+      "hedef2": 927.74,
+      "lot": 5,
+      "sektor": "havacilik",
+      "tarih": "2026-11-23",
+      "gun": 0,
+      "yarim": false,
+      "miktar": "lot",
+      "carpan": 1.0,
+      "piyasa": "TR",
+      "grup": "hisse",
+      "son_bar": "2026-11-23"
+    }
+  },
+  "kapali": []
+}

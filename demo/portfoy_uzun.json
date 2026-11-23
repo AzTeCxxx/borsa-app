@@ -1,0 +1,21 @@
+{
+  "acik": {
+    "GRAM_ALTIN": {
+      "giris": 96.48,
+      "stop": 90.79,
+      "hedef1": 113.55,
+      "hedef2": 130.62,
+      "lot": 15,
+      "sektor": "altin",
+      "tarih": "2026-11-23",
+      "gun": 0,
+      "yarim": false,
+      "miktar": "gram",
+      "carpan": 1.0,
+      "piyasa": "TR",
+      "grup": "maden",
+      "son_bar": "2026-11-23"
+    }
+  },
+  "kapali": []
+}
