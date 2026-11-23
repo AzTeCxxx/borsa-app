@@ -260,6 +260,15 @@ const VARLIK = { GRAM_ALTIN: "Gram altın", GRAM_GUMUS: "Gram gümüş", ONS_ALT
 const sek = (x) => SEKTOR[x] || x;
 const ad = (k) => VARLIK[k] || k;
 const buyukHarf = (t) => String(t).split(" ").map((w) => w.charAt(0).toLocaleUpperCase("tr-TR") + w.slice(1)).join(" ");
+// Analiz zamanı: saat dilimi yoksa (eski kayıtlar, bulut UTC çalışır) UTC kabul edilir
+const analizZamani = (t) => new Date(/([zZ]|[+-]\d\d:?\d\d)$/.test(t) ? t : t + "Z");
+function ne_zaman(d) {
+  const dk = Math.round((Date.now() - d.getTime()) / 60000);
+  if (dk < 1) return "az önce";
+  if (dk < 60) return `${dk} dk önce`;
+  if (dk < 60 * 24) return `${Math.round(dk / 60)} saat önce`;
+  return `${Math.round(dk / 1440)} gün önce`;
+}
 const tarih = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" }); };
 const $ = (s, k = document) => k.querySelector(s);
 const $$ = (s, k = document) => [...k.querySelectorAll(s)];
@@ -336,8 +345,8 @@ async function verileriYukle() {
     if (!analiz) throw new Error("Depoda henüz analiz yok. Yenile butonuna basın.");
     S.analiz = analiz;
     if (!S.demo || !Object.keys(S.portfoy).length) VADELER.forEach((v, i) => (S.portfoy[v] = ps[i] || { acik: {}, kapali: [] }));
-    const t = new Date(analiz.tarih);
-    $("#guncel").textContent = (S.demo ? "Demo · " : "") + "Son analiz " + t.toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    const t = analizZamani(analiz.tarih);
+    $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`;
     if (!S.mesgul) durumGoster("");
     ciz();
   } catch (e) {
@@ -548,7 +557,16 @@ async function yenile() {
     const onceki = await GH.tetikle("analiz.yml", { telegram: String(!!S.ayar.telegram) });
     bildir("Analiz başlatıldı. Genellikle 3–6 dakika sürer; uygulamayı kapatabilirsiniz.", 5000);
     await GH.bekle("analiz.yml", onceki, "Analiz");
-    await verileriYukle(); durumGoster(""); bildir("Veriler güncellendi.");
+    const eski = S.analiz?.tarih;
+    await verileriYukle();
+    for (let i = 0; i < 4 && S.analiz?.tarih === eski; i++) {     // GitHub dosyayı birkaç saniye eski verebilir
+      durumGoster("Analiz bitti, yeni veri alınıyor…");
+      await new Promise((r) => setTimeout(r, 5000));
+      await verileriYukle();
+    }
+    durumGoster("");
+    if (S.analiz?.tarih === eski) bildir("Analiz bitti ama yeni veri henüz görünmüyor. Bir dakika sonra sayfayı yenileyin.", 6000);
+    else bildir("Veriler güncellendi: " + analizZamani(S.analiz.tarih).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
   } catch (e) { durumGoster(e.message); }
   finally { S.mesgul = false; btn.classList.remove("donuyor"); }
 }
@@ -597,6 +615,8 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") panelKapat
 
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js");
 verileriYukle();
+setInterval(() => { if (S.analiz && !S.mesgul) { const t = analizZamani(S.analiz.tarih);       // "x dk önce" yazısını tazele
+  $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`; } }, 60000);
 </script>
 </body>
 </html>
