@@ -474,15 +474,16 @@ function cizPortfoy() {
       let ana = "";
       if (o?.eylem === "YARISINI SAT") ana = `<button class="btn btn-altin btn-kucuk" data-islem="sat" data-lot="${o.miktar}" ${ik}>Yarısını sat (${sayi(o.miktar)} ${m})</button>`;
       else if (o?.eylem === "EKLE") ana = `<button class="btn btn-al btn-kucuk" data-islem="${v === "dip" ? "detay" : "ekleac"}" ${ik}>${v === "dip" ? `${pos.kademe + 1}. kademeyi ekle` : `Ekle (${sayi(o.miktar)} ${m})`}</button>`;
-      else if (v === "dip" && pos.plan && pos.kademe < pos.plan.length && s) ana = `<button class="btn btn-ikincil btn-kucuk" data-islem="detay" ${ik}>${pos.kademe + 1}. kademe</button>`;
-      const sat = `<button class="btn ${o?.eylem === "SAT" ? "btn-sat" : "btn-ikincil"} btn-kucuk" data-islem="sat" ${ik}>${o?.eylem === "SAT" ? "Tümünü sat" : "Sat"}</button>`;
+      else if (o?.eylem === "SAT") ana = `<button class="btn btn-sat btn-kucuk" data-islem="sat" ${ik}>Tümünü sat</button>`;
+      const al = s && o?.eylem !== "EKLE" ? `<button class="btn btn-ikincil btn-kucuk" data-islem="${v === "dip" && pos.plan && pos.kademe < pos.plan.length ? "detay" : "ekleac"}" ${ik}>Al</button>` : "";
+      const sat = `<button class="btn btn-ikincil btn-kucuk" data-islem="satac" ${ik}>Sat</button>`;
       return [SIRA[o?.eylem] ?? 3, `<div class="kart ${o ? "k-" + String(o.eylem).split(" ")[0] : ""}" style="cursor:default">
         ${oneriKutu(o)}
         <div class="k-ust"><span class="kod">${esc(ad(kod))}</span><span class="sektor">${sayi(pos.lot)} ${m}</span>
           <span class="fiyat ${kz >= 0 ? "arti" : "eksi"}">${tl(kz)}</span></div>
         <div class="p-izgara"><div><span>Maliyet</span>${sayi(pos.giris)}</div><div><span>Son fiyat</span>${sayi(son)} <small class="${yuzde >= 0 ? "arti" : "eksi"}">%${sayi(yuzde, 1)}</small></div>${kademe}
           <div><span>Stop</span>${sayi(pos.stop)}</div><div><span>Hedef 1</span>${sayi(pos.hedef1)}${pos.yarim ? " ✓" : ""}</div><div><span>Hedef 2</span>${sayi(pos.hedef2)}</div></div>
-        <div class="p-butonlar">${ana}${sat}</div></div>`];
+        <div class="p-butonlar">${ana}${al}${sat}</div></div>`];
     }).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
     if (kartlar.length) gruplar += `<h2 class="bolum">${v === "dip" ? "Dip alımı" : VADE_AD[v] + " vade"}</h2>${kartlar.join("")}`;
   }
@@ -526,7 +527,13 @@ function panelAc(vade, kod, mod) {
   const kesirli = !["lot", "adet"].includes(x.miktar);
   const adim = kesirli ? (x.lot >= 10 ? 1 : 0.01) : 1;
   const kademeKaldi = dip && pos && pos.plan && pos.kademe < pos.plan.length;
-  const satHepsi = pos ? `<div style="height:8px"></div><button class="btn btn-ikincil" data-islem="sat" data-vade="${vade}" data-kod="${esc(kod)}">Tümünü sanal sat (${sayi(pos.lot)} ${esc(x.miktar)})</button>` : "";
+  const satHepsi = pos ? `<div class="vade-etiket" id="satBolum" style="margin-top:18px">Sat</div>
+      <div class="miktar"><button data-adim="-${adim}" data-hedef="satGir" aria-label="Azalt">−</button>
+        <input id="satGir" inputmode="decimal" value="${pos.lot}" data-max="${pos.lot}" aria-label="Satılacak miktar"
+          data-fiyat="${x.fiyat * (x.carpan || 1)}" data-giris="${pos.giris * (pos.carpan || 1)}" data-birim="${esc(x.miktar)}" data-lot="${pos.lot}">
+        <button data-adim="${adim}" data-hedef="satGir" aria-label="Artır">+</button></div>
+      <div class="miktar-not" id="satNot"></div>
+      <button class="btn ${o?.eylem === "SAT" ? "btn-sat" : "btn-ikincil"}" data-islem="satgir" data-vade="${vade}" data-kod="${esc(kod)}">Sanal sat</button>` : "";
   const miktarBlok = (oneri) => `<div class="miktar"><button data-adim="-${adim}" aria-label="Azalt">−</button>
         <input id="miktarGir" inputmode="decimal" value="${oneri > 0 ? oneri : adim}" aria-label="Miktar"
           data-fiyat="${x.fiyat * (x.carpan || 1)}" data-oneri="${oneri}" data-birim="${esc(x.miktar)}">
@@ -570,16 +577,22 @@ function panelAc(vade, kod, mod) {
     ${eylem}`;
   miktarNotGuncelle();
   $("#ortu").classList.add("acik"); $("#panel").classList.add("acik");
+  if (mod === "sat") setTimeout(() => $("#satBolum")?.scrollIntoView({ block: "start", behavior: "smooth" }), 250);
   $("#panel").focus?.();
 }
 function miktarNotGuncelle() {
+  const si = $("#satGir"), sn = $("#satNot");
+  if (si && sn) {
+    const m = Math.min(+si.dataset.lot, parseFloat(si.value.replace(",", ".")) || 0), kz = (+si.dataset.fiyat - +si.dataset.giris) * m;
+    sn.innerHTML = `${esc(si.dataset.birim)} · elinizde ${sayi(+si.dataset.lot)} · ${m >= +si.dataset.lot ? "tamamı" : kz > 0 ? "kısmi satış, kalan için stop maliyete çekilir" : "kısmi satış"} · tutar ≈ ${tutar(m * +si.dataset.fiyat)}, kâr/zarar ≈ <b class="${kz >= 0 ? "arti" : "eksi"}">${tl(kz)}</b>`;
+  }
   const i = $("#miktarGir"), n = $("#miktarNot"); if (!i || !n) return;
   const m = parseFloat(i.value.replace(",", ".")) || 0, f = +i.dataset.fiyat, oneri = +i.dataset.oneri;
   let t = `${esc(i.dataset.birim)} · önerilen ${oneri > 0 ? sayi(oneri) : "yok (sermaye payı yetersiz)"} · tutar ≈ ${tutar(m * f)}`;
   if (oneri > 0 && m > oneri * 1.001) t += `<br><b class="eksi">Önerilenin ${sayi(m / oneri, 1)} katı: stop olursa zarar da ${sayi(m / oneri, 1)} katı olur.</b>`;
   n.innerHTML = t;
 }
-document.addEventListener("input", (e) => { if (e.target.id === "miktarGir") miktarNotGuncelle(); });
+document.addEventListener("input", (e) => { if (["miktarGir", "satGir"].includes(e.target.id)) miktarNotGuncelle(); });
 function panelKapat() { $("#ortu").classList.remove("acik"); $("#panel").classList.remove("acik"); }
 
 /* ============================================================ işlemler */
@@ -591,7 +604,7 @@ async function islemYap(tur, vade, kod, satLot) {
     if (!(parseFloat(lot) > 0)) return bildir("Geçerli bir miktar girin.");
   } else if (satLot) {
     const pos = S.portfoy[vade]?.acik?.[kod];
-    if (!confirm(`${ad(kod)}: ${sayi(satLot)} ${pos?.miktar || ""} son analiz fiyatından sanal satılsın mı? Kalan için stop maliyete çekilir.`)) return;
+    if (!confirm(`${ad(kod)}: ${sayi(satLot)} ${pos?.miktar || ""} son analiz fiyatından sanal satılsın mı?`)) return;
     lot = String(satLot);
   } else if (!confirm(`${ad(kod)} sanal pozisyonun tamamı son analiz fiyatından kapatılsın mı?`)) return;
   panelKapat();
@@ -631,9 +644,9 @@ function demoIslem(tur, vade, kod, lot) {
     bildir(`${ad(kod)}: ${lot} ${x.miktar} eklendi, ortalama maliyet ${sayi(pos.giris)}, stop ${sayi(pos.stop)} (demo).`);
   } else if (lot > 0 && lot < p.acik[kod].lot) {
     const pos = p.acik[kod]; demoKapat(p, kod, pos, lot, x.fiyat, "ELLE KISMİ SATIŞ");
-    pos.lot = +(pos.lot - lot).toFixed(2); pos.yarim = true; pos.stop = Math.max(pos.stop, pos.giris);
+    pos.lot = +(pos.lot - lot).toFixed(2); if (x.fiyat > pos.giris) { pos.yarim = true; pos.stop = Math.max(pos.stop, pos.giris); }
     delete S.analiz.sonuc[vade].oneriler?.[kod];
-    bildir(`${ad(kod)}: ${sayi(lot)} ${x.miktar} satıldı, stop maliyete çekildi (demo).`);
+    bildir(`${ad(kod)}: ${sayi(lot)} ${x.miktar} satıldı (demo).`);
   } else {
     const pos = p.acik[kod]; demoKapat(p, kod, pos, pos.lot, x.fiyat, "ELLE SATIŞ");
     delete p.acik[kod]; bildir(`${ad(kod)} sanal satıldı (demo).`);
@@ -688,7 +701,18 @@ document.addEventListener("click", (ev) => {
   if (t.dataset.grup) { S.grup = t.dataset.grup; localStorage.setItem("ab_grup", S.grup); return cizSinyal(); }
   if (t.classList.contains("cip")) { S.vade = t.dataset.vade; localStorage.setItem("ab_vade", S.vade); return cizSinyal(); }
   if (t.classList.contains("kart") && t.dataset.kod) return panelAc(S.vade, t.dataset.kod);
-  if (t.dataset.adim) { const i = $("#miktarGir"); const v = Math.max(0, (parseFloat(i.value.replace(",", ".")) || 0) + parseFloat(t.dataset.adim)); i.value = +v.toFixed(2); miktarNotGuncelle(); return; }
+  if (t.dataset.adim) {
+    const i = $("#" + (t.dataset.hedef || "miktarGir")), ust = i.dataset.max ? +i.dataset.max : Infinity;
+    const v = Math.min(ust, Math.max(0, (parseFloat(i.value.replace(",", ".")) || 0) + parseFloat(t.dataset.adim)));
+    i.value = +v.toFixed(2); miktarNotGuncelle(); return;
+  }
+  if (t.dataset.islem === "satgir") {
+    const pos = S.portfoy[t.dataset.vade]?.acik?.[t.dataset.kod], m = parseFloat(String($("#satGir").value).replace(",", "."));
+    if (!(m > 0)) return bildir("Geçerli bir miktar girin.");
+    if (m >= pos.lot) return islemYap("sat", t.dataset.vade, t.dataset.kod, null);
+    return islemYap("sat", t.dataset.vade, t.dataset.kod, m);
+  }
+  if (t.dataset.islem === "satac") return panelAc(t.dataset.vade, t.dataset.kod, "sat");
   if (t.dataset.islem === "detay") return panelAc(t.dataset.vade, t.dataset.kod);
   if (t.dataset.islem === "ekleac") return panelAc(t.dataset.vade, t.dataset.kod, "ekle");
   if (t.dataset.islem) return islemYap(t.dataset.islem, t.dataset.vade, t.dataset.kod, t.dataset.lot ? parseFloat(t.dataset.lot) : null);
