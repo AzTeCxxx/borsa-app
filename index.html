@@ -98,6 +98,13 @@ h2.bolum{font-size:15px;font-weight:700;margin:18px 2px 8px;color:var(--gri)}
 .ozet .buyuk{font-size:30px;font-weight:800;letter-spacing:-.5px}
 .ozet .satir{display:flex;justify-content:space-between;font-size:14px;color:var(--gri);margin-top:6px}
 .arti{color:var(--yesil)} .eksi{color:var(--kirmizi)}
+.oneri{display:flex;gap:10px;align-items:flex-start;margin:-2px -4px 10px;padding:9px 10px;border-radius:10px;background:var(--zemin);font-size:14px}
+.oneri b.e{flex:none;font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap;margin-top:1px}
+.e-TUT{background:var(--cizgi);color:var(--murekkep)} .e-SAT{background:var(--kirmizi);color:#fff}
+.e-YARISINI{background:var(--altin);color:#fff} .e-EKLE{background:var(--yesil);color:#fff}
+.oneri.vurgu-SAT{background:var(--kirmizi-acik)} .oneri.vurgu-YARISINI{background:var(--altin-acik)} .oneri.vurgu-EKLE{background:var(--yesil-acik)}
+.oneri small{display:block;color:var(--gri);margin-top:2px}
+.oneri-ozet{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .uyari{background:var(--sari-acik);border-radius:var(--r-kucuk);padding:10px 12px;margin-bottom:8px;font-size:14px}
 .p-izgara{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;font-size:13px}
 .p-izgara div span{display:block;color:var(--gri);font-size:11px}
@@ -360,8 +367,17 @@ async function verileriYukle() {
 const sinyaller = (vade) => (S.analiz?.sonuc?.[vade]?.sinyaller || []);
 const vadeVar = (v) => !!S.analiz?.sonuc?.[v];
 const fiyatBul = (vade, kod) => sinyaller(vade).find((x) => x.kod === kod);
-function rozet(k, portfoyde) {
-  if (portfoyde) return `<span class="rozet r-portfoy">Portföyde</span>`;
+const EYLEM_AD = { "TUT": "Tut", "SAT": "Sat", "YARISINI SAT": "Yarısını sat", "EKLE": "Ekle" };
+const eSinif = (e) => "e-" + String(e).split(" ")[0];
+const oneriBul = (v, kod) => S.analiz?.sonuc?.[v]?.oneriler?.[kod];
+function oneriKutu(o) {
+  if (!o) return "";
+  const n = o.neden || [];
+  return `<div class="oneri ${o.eylem === "TUT" ? "" : "vurgu-" + String(o.eylem).split(" ")[0]}"><b class="e ${eSinif(o.eylem)}">${esc(EYLEM_AD[o.eylem] || o.eylem)}</b>
+    <div>${esc(n[0] || "")}${n.slice(1).map((x) => `<small>${esc(x)}</small>`).join("")}</div></div>`;
+}
+function rozet(k, portfoyde, o) {
+  if (portfoyde) return `<span class="rozet r-portfoy">Portföyde${o && o.eylem !== "TUT" ? ": " + esc(EYLEM_AD[o.eylem]) : ""}</span>`;
   const c = AL.includes(k) ? "r-al" : k === "SAT / UZAK DUR" ? "r-sat" : ["İZLE", "TEYİT BEKLE"].includes(k) ? "r-izle" : "r-notr";
   return `<span class="rozet ${c}">${esc(k)}</span>`;
 }
@@ -414,7 +430,7 @@ function cizSinyal() {
       <div class="k-ust"><span class="kod">${esc(ad(x.kod))}</span><span class="sektor">${esc(sek(x.sektor))}</span>
         <span class="fiyat">${sayi(x.fiyat)}<small>${esc(x.birim)}</small></span></div>
       ${olcer(x, S.vade)}
-      <div class="k-alt">${rozet(x.karar, !!acik[x.kod])}<span>${alt}</span></div></button>`;
+      <div class="k-alt">${rozet(x.karar, !!acik[x.kod], oneriBul(S.vade, x.kod))}<span>${alt}</span></div></button>`;
   };
   $("#sinyalListe").innerHTML =
     (one.length ? `<h2 class="bolum">${S.vade === "dip" ? "Dip alım adayları ve portföydekiler" : "AL sinyali verenler ve portföydekiler"}</h2>${one.map(kart).join("")}` :
@@ -424,32 +440,42 @@ function cizSinyal() {
 
 function cizPortfoy() {
   let acikKZ = 0, gercek = 0, adet = 0;
-  const uyarilar = [];
+  const uyarilar = [], sayac = {};
   let gruplar = "";
   for (const v of VADELER) {
     const p = S.portfoy[v]; if (!p) continue;
     (S.analiz.sonuc?.[v]?.islemler || []).forEach((u) => uyarilar.push(`<b>${v === "dip" ? "Dip alımı" : VADE_AD[v] + " vade"}:</b> ${esc(u)}`));
     p.kapali.forEach((k) => (gercek += (k.cikis - k.giris) * k.lot * (fiyatBul(v, k.kod)?.carpan || 1)));
+    const SIRA = { "SAT": 0, "YARISINI SAT": 1, "EKLE": 2, "TUT": 3 };
     const kartlar = Object.entries(p.acik).map(([kod, pos]) => {
-      const s = fiyatBul(v, kod), son = s ? s.fiyat : pos.giris;
+      const s = fiyatBul(v, kod), son = s ? s.fiyat : pos.giris, o = oneriBul(v, kod);
       const kz = (son - pos.giris) * pos.lot * (pos.carpan || 1); acikKZ += kz; adet++;
+      if (o && o.eylem !== "TUT") sayac[o.eylem] = (sayac[o.eylem] || 0) + 1;
       const yuzde = (son / pos.giris - 1) * 100;
       const kademe = v === "dip" && pos.plan ? `<div><span>Kademe</span>${pos.kademe} / ${pos.plan.length}</div>` : `<div><span>Açılış</span>${esc(tarih(pos.tarih))}</div>`;
-      const ekle = v === "dip" && pos.plan && pos.kademe < pos.plan.length && s
-        ? `<button class="btn btn-altin btn-kucuk" data-islem="detay" data-vade="${v}" data-kod="${esc(kod)}">${pos.kademe + 1}. kademe ekle</button>` : "";
-      return `<div class="kart" style="cursor:default">
-        <div class="k-ust"><span class="kod">${esc(ad(kod))}</span><span class="sektor">${sayi(pos.lot)} ${esc(pos.miktar || "lot")}</span>
+      const m = esc(pos.miktar || "lot"), ik = `data-vade="${v}" data-kod="${esc(kod)}"`;
+      let ana = "";
+      if (o?.eylem === "YARISINI SAT") ana = `<button class="btn btn-altin btn-kucuk" data-islem="sat" data-lot="${o.miktar}" ${ik}>Yarısını sat (${sayi(o.miktar)} ${m})</button>`;
+      else if (o?.eylem === "EKLE") ana = `<button class="btn btn-al btn-kucuk" data-islem="${v === "dip" ? "detay" : "ekleac"}" ${ik}>${v === "dip" ? `${pos.kademe + 1}. kademeyi ekle` : `Ekle (${sayi(o.miktar)} ${m})`}</button>`;
+      else if (v === "dip" && pos.plan && pos.kademe < pos.plan.length && s) ana = `<button class="btn btn-ikincil btn-kucuk" data-islem="detay" ${ik}>${pos.kademe + 1}. kademe</button>`;
+      const sat = `<button class="btn ${o?.eylem === "SAT" ? "btn-sat" : "btn-ikincil"} btn-kucuk" data-islem="sat" ${ik}>${o?.eylem === "SAT" ? "Tümünü sat" : "Sat"}</button>`;
+      return [SIRA[o?.eylem] ?? 3, `<div class="kart" style="cursor:default">
+        ${oneriKutu(o)}
+        <div class="k-ust"><span class="kod">${esc(ad(kod))}</span><span class="sektor">${sayi(pos.lot)} ${m}</span>
           <span class="fiyat ${kz >= 0 ? "arti" : "eksi"}">${tl(kz)}</span></div>
         <div class="p-izgara"><div><span>Maliyet</span>${sayi(pos.giris)}</div><div><span>Son fiyat</span>${sayi(son)} <small class="${yuzde >= 0 ? "arti" : "eksi"}">%${sayi(yuzde, 1)}</small></div>${kademe}
-          <div><span>Stop</span>${sayi(pos.stop)}</div><div><span>Hedef 1</span>${sayi(pos.hedef1)}</div><div><span>Hedef 2</span>${sayi(pos.hedef2)}</div></div>
-        <div class="p-butonlar">${ekle}<button class="btn btn-sat btn-kucuk" data-islem="sat" data-vade="${v}" data-kod="${esc(kod)}">Sanal sat</button></div></div>`;
-    });
+          <div><span>Stop</span>${sayi(pos.stop)}</div><div><span>Hedef 1</span>${sayi(pos.hedef1)}${pos.yarim ? " ✓" : ""}</div><div><span>Hedef 2</span>${sayi(pos.hedef2)}</div></div>
+        <div class="p-butonlar">${ana}${sat}</div></div>`];
+    }).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
     if (kartlar.length) gruplar += `<h2 class="bolum">${v === "dip" ? "Dip alımı" : VADE_AD[v] + " vade"}</h2>${kartlar.join("")}`;
   }
   $("#portfoyIcerik").innerHTML = `
     <div class="ozet"><div class="vade-etiket">Açık pozisyonların kâr/zararı</div>
       <div class="buyuk ${acikKZ >= 0 ? "arti" : "eksi"}">${tl(acikKZ)}</div>
-      <div class="satir"><span>${adet} açık pozisyon</span><span>Gerçekleşen: <b class="${gercek >= 0 ? "arti" : "eksi"}">${tl(gercek)}</b></span></div></div>
+      <div class="satir"><span>${adet} açık pozisyon</span><span>Gerçekleşen: <b class="${gercek >= 0 ? "arti" : "eksi"}">${tl(gercek)}</b></span></div>
+      ${adet ? `<div class="oneri-ozet">${Object.keys(sayac).length
+        ? ["SAT", "YARISINI SAT", "EKLE"].filter((e) => sayac[e]).map((e) => `<span class="rozet ${eSinif(e)}">${sayac[e]} × ${EYLEM_AD[e]}</span>`).join("")
+        : `<span class="rozet e-TUT">Bugün işlem önerisi yok, hepsini tutun</span>`}</div>` : ""}</div>
     ${uyarilar.length ? `<h2 class="bolum">Bugünkü uyarılar</h2>${uyarilar.map((u) => `<div class="uyari">${u}</div>`).join("")}` : ""}
     ${gruplar || `<div class="bos"><b>Portföyünüz boş</b>Sinyaller ekranında bir varlığa dokunup <i>Sanal al</i> ile pozisyon açabilirsiniz.</div>`}`;
 }
@@ -466,14 +492,25 @@ function cizHaber() {
 }
 
 /* ============================================================ detay paneli */
-function panelAc(vade, kod) {
+function panelAc(vade, kod, mod) {
   const x = fiyatBul(vade, kod); if (!x) return;
-  const pos = S.portfoy[vade]?.acik?.[kod];
+  const pos = S.portfoy[vade]?.acik?.[kod], o = pos ? oneriBul(vade, kod) : null;
   const dip = vade === "dip";
   const kesirli = !["lot", "adet"].includes(x.miktar);
   const adim = kesirli ? (x.lot >= 10 ? 1 : 0.01) : 1;
   let eylem;
-  if (pos && !(dip && pos.plan && pos.kademe < pos.plan.length)) {
+  if (pos && !dip && (mod === "ekle" || o?.eylem === "EKLE")) {
+    const om = o?.miktar || x.lot;
+    eylem = `<div class="miktar"><button data-adim="-${adim}" aria-label="Azalt">−</button>
+        <input id="miktarGir" inputmode="decimal" value="${om}" aria-label="Eklenecek miktar">
+        <button data-adim="${adim}" aria-label="Artır">+</button></div>
+      <div class="miktar-not">Eklenecek ${esc(x.miktar)} · önerilen ${sayi(om)}. Ekleyince stop ilk alış fiyatına (${sayi(pos.giris)}) çekilir.</div>
+      <button class="btn btn-al" data-islem="ekle" data-vade="${vade}" data-kod="${esc(kod)}">Ekle</button>
+      <div style="height:8px"></div><button class="btn btn-ikincil" data-islem="sat" data-vade="${vade}" data-kod="${esc(kod)}">Tümünü sanal sat</button>`;
+  } else if (pos && o?.eylem === "YARISINI SAT") {
+    eylem = `<button class="btn btn-altin" data-islem="sat" data-lot="${o.miktar}" data-vade="${vade}" data-kod="${esc(kod)}">Yarısını sat (${sayi(o.miktar)} ${esc(x.miktar)})</button>
+      <div style="height:8px"></div><button class="btn btn-ikincil" data-islem="sat" data-vade="${vade}" data-kod="${esc(kod)}">Tümünü sanal sat</button>`;
+  } else if (pos && !(dip && pos.plan && pos.kademe < pos.plan.length)) {
     eylem = `<button class="btn btn-sat" data-islem="sat" data-vade="${vade}" data-kod="${esc(kod)}">Sanal sat (${sayi(pos.lot)} ${esc(x.miktar)})</button>`;
   } else {
     const etiket = dip ? (pos ? `${pos.kademe + 1}. kademeyi ekle` : "1. kademeyi al") : "Sanal al";
@@ -502,6 +539,7 @@ function panelAc(vade, kod) {
   $("#panel").innerHTML = `<div class="tutamak"></div>
     <div style="display:flex;align-items:center;gap:10px"><h2 id="panelBaslik" style="flex:1">${esc(ad(kod))}</h2>${rozet(x.karar, false)}</div>
     <div class="alt-baslik">${esc(sek(x.sektor))}, ${vade === "dip" ? "dip alımı" : VADE_AD[vade].toLocaleLowerCase("tr-TR") + " vade"}. Tutma süresi: ${esc(x.tutma)}</div>
+    ${pos ? `<div class="vade-etiket" style="margin-top:14px">Portföyünüzdeki ${sayi(pos.lot)} ${esc(x.miktar)} için bugünkü öneri</div>${oneriKutu(o)}` : ""}
     <div class="detay">${detay}</div>${kademeler}
     <div class="vade-etiket">Neden?</div><ul class="gerekce">${(x.gerekce || []).map((g) => `<li>${esc(g)}</li>`).join("") || "<li>–</li>"}</ul>
     ${eylem}`;
@@ -511,19 +549,23 @@ function panelAc(vade, kod) {
 function panelKapat() { $("#ortu").classList.remove("acik"); $("#panel").classList.remove("acik"); }
 
 /* ============================================================ işlemler */
-async function islemYap(tur, vade, kod) {
+async function islemYap(tur, vade, kod, satLot) {
   if (S.mesgul) return bildir("Önceki işlem bitmeden yenisi başlatılamaz.");
   let lot = "";
-  if (tur === "al") {
+  if (tur === "al" || tur === "ekle") {
     lot = String($("#miktarGir")?.value || "").replace(",", ".");
     if (!(parseFloat(lot) > 0)) return bildir("Geçerli bir miktar girin.");
-  } else if (!confirm(`${ad(kod)} sanal pozisyonu son analiz fiyatından kapatılsın mı?`)) return;
+  } else if (satLot) {
+    const pos = S.portfoy[vade]?.acik?.[kod];
+    if (!confirm(`${ad(kod)}: ${sayi(satLot)} ${pos?.miktar || ""} son analiz fiyatından sanal satılsın mı? Kalan için stop maliyete çekilir.`)) return;
+    lot = String(satLot);
+  } else if (!confirm(`${ad(kod)} sanal pozisyonun tamamı son analiz fiyatından kapatılsın mı?`)) return;
   panelKapat();
   if (S.demo) return demoIslem(tur, vade, kod, parseFloat(lot));
   S.mesgul = true;
   try {
     const onceki = await GH.tetikle("islem.yml", { tur, vade, kod, lot });
-    await GH.bekle("islem.yml", onceki, tur === "al" ? `${ad(kod)} alınıyor` : `${ad(kod)} satılıyor`);
+    await GH.bekle("islem.yml", onceki, { al: `${ad(kod)} alınıyor`, ekle: `${ad(kod)} ekleniyor` }[tur] || `${ad(kod)} satılıyor`);
     const sonuc = await GH.dosya("islem_sonuc.json");
     await verileriYukle();
     durumGoster(""); bildir(sonuc?.mesaj || "İşlem tamamlandı.", 5000);
@@ -543,9 +585,19 @@ function demoIslem(tur, vade, kod, lot) {
         tarih: new Date().toISOString().slice(0, 10), gun: 0, ...(vade === "dip" ? { kademe: 1, plan: x.kademeler } : {}) };
       bildir(`${kod}: ${lot} ${x.miktar} sanal alındı (demo).`);
     }
+  } else if (tur === "ekle") {
+    const pos = p.acik[kod], top = pos.lot + lot, ilk = pos.giris;
+    pos.giris = (pos.giris * pos.lot + x.fiyat * lot) / top; pos.lot = top; pos.stop = Math.max(pos.stop, ilk); pos.eklemeler = [1];
+    delete S.analiz.sonuc[vade].oneriler[kod];
+    bildir(`${ad(kod)}: ${lot} ${x.miktar} eklendi, stop ${sayi(pos.stop)} (demo).`);
+  } else if (lot > 0 && lot < p.acik[kod].lot) {
+    const pos = p.acik[kod]; p.kapali.push({ kod, lot, giris: pos.giris, cikis: x.fiyat, neden: "ELLE KISMİ SATIŞ" });
+    pos.lot = +(pos.lot - lot).toFixed(2); pos.yarim = true; pos.stop = Math.max(pos.stop, pos.giris);
+    delete S.analiz.sonuc[vade].oneriler[kod];
+    bildir(`${ad(kod)}: ${sayi(lot)} ${x.miktar} satıldı, stop maliyete çekildi (demo).`);
   } else {
     const pos = p.acik[kod]; p.kapali.push({ kod, lot: pos.lot, giris: pos.giris, cikis: x.fiyat, neden: "ELLE SATIŞ" });
-    delete p.acik[kod]; bildir(`${kod} sanal satıldı (demo).`);
+    delete p.acik[kod]; bildir(`${ad(kod)} sanal satıldı (demo).`);
   }
   ciz();
 }
@@ -599,7 +651,8 @@ document.addEventListener("click", (ev) => {
   if (t.classList.contains("kart") && t.dataset.kod) return panelAc(S.vade, t.dataset.kod);
   if (t.dataset.adim) { const i = $("#miktarGir"); const v = Math.max(0, (parseFloat(i.value.replace(",", ".")) || 0) + parseFloat(t.dataset.adim)); i.value = +v.toFixed(2); return; }
   if (t.dataset.islem === "detay") return panelAc(t.dataset.vade, t.dataset.kod);
-  if (t.dataset.islem) return islemYap(t.dataset.islem, t.dataset.vade, t.dataset.kod);
+  if (t.dataset.islem === "ekleac") return panelAc(t.dataset.vade, t.dataset.kod, "ekle");
+  if (t.dataset.islem) return islemYap(t.dataset.islem, t.dataset.vade, t.dataset.kod, t.dataset.lot ? parseFloat(t.dataset.lot) : null);
 });
 $("#yenileBtn").addEventListener("click", yenile);
 $("#kaydetBtn").addEventListener("click", async () => {

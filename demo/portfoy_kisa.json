@@ -1,20 +1,20 @@
 {
   "acik": {
-    "THYAO": {
-      "giris": 818.74,
-      "stop": 782.4,
-      "hedef1": 873.24,
-      "hedef2": 927.74,
+    "ONS_ALTIN": {
+      "giris": 55.72,
+      "stop": 53.53,
+      "hedef1": 59.0,
+      "hedef2": 62.29,
       "lot": 5,
-      "sektor": "havacilik",
-      "tarih": "2026-11-23",
+      "sektor": "altin",
+      "tarih": "2026-11-24",
       "gun": 0,
       "yarim": false,
-      "miktar": "lot",
-      "carpan": 1.0,
-      "piyasa": "TR",
-      "grup": "hisse",
-      "son_bar": "2026-11-23"
+      "miktar": "ons",
+      "carpan": 34.0,
+      "piyasa": "US",
+      "grup": "maden",
+      "son_bar": "2026-11-24"
     }
   },
   "kapali": []
