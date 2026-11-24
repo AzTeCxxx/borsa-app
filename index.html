@@ -497,7 +497,7 @@ function cizPortfoy() {
         <div><span>Gerçekleşen</span><b class="${gercek >= 0 ? "arti" : "eksi"}">${tl(gercek)}</b></div>
         <div><span>Ödenen komisyon</span><b>${tutar(komToplam)}</b></div><div><span>Açık pozisyon</span><b>${adet}</b></div>
       </div>
-      <small class="not">Kâr/zarar alış ve satış komisyonları düşülerek hesaplanır; ABD varlıkları güncel dolar kuruyla TL'ye çevrilir.</small>
+      <small class="not">Kâr/zarar VakıfBank komisyonları (alış ve satış, BSMV dahil) düşülerek hesaplanır; ABD varlıkları güncel dolar kuruyla TL'ye çevrilir.</small>
       ${adet ? `<div class="oneri-ozet">${Object.keys(sayac).length
         ? ["SAT", "YARISINI SAT", "EKLE", "TUT"].filter((e) => sayac[e]).map((e) => `<span class="rozet ${eSinif(e)}">${sayac[e]} × ${EYLEM_AD[e]}</span>`).join("")
         : `<span class="rozet e-TUT">Bugün işlem önerisi yok, hepsini tutun</span>`}</div>` : ""}</div>
@@ -599,19 +599,19 @@ async function islemYap(tur, vade, kod, satLot) {
 }
 
 function demoKapat(p, kod, pos, lot, cikis, neden) {
-  const c = pos.carpan || 1, o = pos.kom_oran ?? 0.0015, pay = (pos.kom || 0) * lot / pos.lot, sat = cikis * lot * c * o;
+  const c = pos.carpan || 1, o = pos.kom_oran ?? 0.0021, pay = (pos.kom || 0) * lot / pos.lot, sat = cikis * lot * c * o;
   pos.kom = (pos.kom || 0) - pay;
   p.kapali.push({ kod, lot, giris: pos.giris, cikis, neden, carpan: c, kom: pay + sat, kz: (cikis - pos.giris) * lot * c - pay - sat });
 }
 function demoIslem(tur, vade, kod, lot) {
-  const p = S.portfoy[vade], x = fiyatBul(vade, kod), akom = (pos, l) => x.fiyat * l * (x.carpan || 1) * (x.kom_oran ?? 0.0015);
+  const p = S.portfoy[vade], x = fiyatBul(vade, kod), akom = (pos, l) => x.fiyat * l * (x.carpan || 1) * (x.kom_oran ?? 0.0021);
   if (tur === "al") {
     const pos = p.acik[kod];
     if (pos && vade === "dip") {
       const top = pos.lot + lot; pos.kom = (pos.kom || 0) + akom(pos, lot); pos.giris = (pos.giris * pos.lot + x.fiyat * lot) / top; pos.lot = top; pos.kademe++;
       bildir(`${kod}: ${pos.kademe}. kademe eklendi (demo).`);
     } else {
-      p.acik[kod] = { giris: x.fiyat, stop: x.stop, hedef1: x.hedef1, hedef2: x.hedef2, lot, miktar: x.miktar, carpan: x.carpan, kom_oran: x.kom_oran ?? 0.0015, kom: akom(null, lot),
+      p.acik[kod] = { giris: x.fiyat, stop: x.stop, hedef1: x.hedef1, hedef2: x.hedef2, lot, miktar: x.miktar, carpan: x.carpan, kom_oran: x.kom_oran ?? 0.0021, kom: akom(null, lot),
         tarih: new Date().toISOString().slice(0, 10), gun: 0, ...(vade === "dip" ? { kademe: 1, plan: x.kademeler } : {}) };
       bildir(`${kod}: ${lot} ${x.miktar} sanal alındı (demo).`);
     }

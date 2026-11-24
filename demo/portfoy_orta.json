@@ -15,8 +15,8 @@
       "piyasa": "US",
       "grup": "maden",
       "son_bar": "2026-11-24",
-      "kom_oran": 0.002,
-      "kom": 16.72
+      "kom_oran": 0.002625,
+      "kom": 21.95
     },
     "BA": {
       "giris": 93.25,
@@ -33,8 +33,8 @@
       "piyasa": "US",
       "grup": "hisse",
       "son_bar": "2026-11-24",
-      "kom_oran": 0.002,
-      "kom": 31.71
+      "kom_oran": 0.002625,
+      "kom": 41.61
     },
     "META": {
       "giris": 58.48,
@@ -51,8 +51,8 @@
       "piyasa": "US",
       "grup": "hisse",
       "son_bar": "2026-11-24",
-      "kom_oran": 0.002,
-      "kom": 19.88
+      "kom_oran": 0.002625,
+      "kom": 26.1
     },
     "GRAM_ALTIN": {
       "giris": 96.48,
@@ -69,8 +69,8 @@
       "piyasa": "TR",
       "grup": "maden",
       "son_bar": "2026-11-24",
-      "kom_oran": 0.0075,
-      "kom": 57.22
+      "kom_oran": 0.011,
+      "kom": 83.93
     }
   },
   "kapali": []
