@@ -70,6 +70,7 @@ h2.bolum{font-size:15px;font-weight:700;margin:18px 2px 8px;color:var(--gri)}
 .sektor{color:var(--gri);font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fiyat{font-weight:700}
 .fiyat small{color:var(--gri);font-weight:500;margin-left:3px}
+.rozetler{display:inline-flex;gap:5px;flex:none}
 .k-alt{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:13px;color:var(--gri)}
 .rozet{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .r-al{background:var(--yesil-acik);color:var(--yesil)} .r-sat{background:var(--kirmizi-acik);color:var(--kirmizi)}
@@ -389,10 +390,11 @@ function oneriKutu(o) {
     <div>${esc(n[0] || "")}${n.slice(1).map((x) => `<small>${esc(x)}</small>`).join("")}</div></div>`;
 }
 function rozet(k, portfoyde, o) {
-  if (portfoyde) return `<span class="rozet r-portfoy ${o ? eSinif(o.eylem) : ""}">Portföyde${o && o.eylem !== "TUT" ? ": " + esc(EYLEM_AD[o.eylem]) : ""}</span>`;
   const c = k === "GÜÇLÜ AL" ? "r-gal" : AL.includes(k) ? "r-al" : k === "GÜÇLÜ SAT" ? "r-gsat"
     : ["SAT", "SAT / UZAK DUR"].includes(k) ? "r-sat" : ["İZLE", "TEYİT BEKLE"].includes(k) ? "r-izle" : "r-notr";
-  return `<span class="rozet ${c}">${esc(k)}</span>`;
+  const sinyal = `<span class="rozet ${c}">${esc(k)}</span>`;
+  if (!portfoyde) return sinyal;
+  return `<span class="rozetler">${sinyal}<span class="rozet r-portfoy ${o ? eSinif(o.eylem) : ""}">Portföyde${o && o.eylem !== "TUT" ? ": " + esc(EYLEM_AD[o.eylem]) : ""}</span></span>`;
 }
 function olcer(x, vade) {
   const v = Math.max(-1, Math.min(1, x.skor)), esik = vade === "dip" ? 0.7 : 0.35;
