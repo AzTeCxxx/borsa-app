@@ -392,7 +392,10 @@ function cizSinyal() {
   }).join("");
   const va = S.analiz.ayarlar?.vadeler?.[S.vade] || {};
   const rejim = S.analiz.sonuc[S.vade].rejim_txt?.[S.piyasa];
-  const rj = rejim ? (rejim.startsWith("GÜÇLÜ") ? "Piyasa güçlü" : "Piyasa zayıf, önerilen miktarlar yarıya indirildi") + " (" + (rejim.match(/\(([^→)]*)/)?.[1] || "").trim() + ")." : "";
+  const ic = rejim ? (rejim.match(/\(([^)]*)\)/)?.[1] || "") : "";
+  const rj = !rejim ? "" : rejim.startsWith("GÜÇLÜ") ? `Piyasa güçlü (${ic.replace(/; oynaklığa göre risk x([\d.]+)/, ", oynaklığa göre risk ×$1")}).`
+    : rejim.startsWith("KAPALI") ? `Piyasa 10 aylık ortalamasının altında: bu vadede yeni alım önerilmiyor (${ic.split("→")[0].trim()}).`
+    : `Piyasa zayıf, önerilen miktarlar küçültüldü (${ic.split("→")[0].trim()}).`;
   $("#vadeNot").textContent = [va.aciklama, rj].filter(Boolean).join(" ");
 
   const liste = sinyaller(S.vade).filter((x) => x.piyasa === S.piyasa && x.grup === S.grup);
