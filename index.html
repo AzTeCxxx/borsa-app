@@ -73,6 +73,7 @@ h2.bolum{font-size:15px;font-weight:700;margin:18px 2px 8px;color:var(--gri)}
 .k-alt{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:13px;color:var(--gri)}
 .rozet{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .r-al{background:var(--yesil-acik);color:var(--yesil)} .r-sat{background:var(--kirmizi-acik);color:var(--kirmizi)}
+.r-gal{background:#0f5c27;color:#fff} .r-gsat{background:#8c1019;color:#fff}
 .r-izle{background:var(--sari-acik);color:var(--sari)} .r-notr{background:var(--zemin);color:var(--gri)}
 .r-portfoy{background:var(--lacivert);color:#fff}
 
@@ -248,7 +249,7 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 /* ============================================================ durum */
 const VADELER = ["kisa", "orta", "uzun", "dip"];
 const VADE_AD = { kisa: "Kısa", orta: "Orta", uzun: "Uzun", dip: "Dip alımı" };
-const AL = ["AL", "KADEMELİ AL"];
+const AL = ["GÜÇLÜ AL", "AL", "KADEMELİ AL"];
 const S = {
   ayar: JSON.parse(localStorage.getItem("ab_ayar") || "null"),
   demo: new URLSearchParams(location.search).has("demo") || localStorage.getItem("ab_demo") === "1",
@@ -378,7 +379,8 @@ function oneriKutu(o) {
 }
 function rozet(k, portfoyde, o) {
   if (portfoyde) return `<span class="rozet r-portfoy">Portföyde${o && o.eylem !== "TUT" ? ": " + esc(EYLEM_AD[o.eylem]) : ""}</span>`;
-  const c = AL.includes(k) ? "r-al" : k === "SAT / UZAK DUR" ? "r-sat" : ["İZLE", "TEYİT BEKLE"].includes(k) ? "r-izle" : "r-notr";
+  const c = k === "GÜÇLÜ AL" ? "r-gal" : AL.includes(k) ? "r-al" : k === "GÜÇLÜ SAT" ? "r-gsat"
+    : ["SAT", "SAT / UZAK DUR"].includes(k) ? "r-sat" : ["İZLE", "TEYİT BEKLE"].includes(k) ? "r-izle" : "r-notr";
   return `<span class="rozet ${c}">${esc(k)}</span>`;
 }
 function olcer(x, vade) {
