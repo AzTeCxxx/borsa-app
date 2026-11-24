@@ -1,6 +1,6 @@
 // Uygulama kabuğunu önbelleğe alır: internet zayıfken de uygulama açılır.
 // Piyasa verileri her zaman GitHub'dan canlı okunur (önbelleğe alınmaz).
-const SURUM = "broker-v7";
+const SURUM = "broker-v8";
 const KABUK = ["./", "index.html", "manifest.webmanifest", "ikon-192.png", "ikon-512.png", "ikon-180.png"];
 self.addEventListener("install", (e) => e.waitUntil(caches.open(SURUM).then((c) => c.addAll(KABUK)).then(() => self.skipWaiting())));
 self.addEventListener("activate", (e) => e.waitUntil(

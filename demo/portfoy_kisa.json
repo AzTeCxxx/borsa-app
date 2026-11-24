@@ -14,7 +14,9 @@
       "carpan": 34.0,
       "piyasa": "US",
       "grup": "maden",
-      "son_bar": "2026-11-24"
+      "son_bar": "2026-11-24",
+      "kom_oran": 0.002,
+      "kom": 18.94
     }
   },
   "kapali": []

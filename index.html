@@ -97,6 +97,11 @@ h2.bolum{font-size:15px;font-weight:700;margin:18px 2px 8px;color:var(--gri)}
 /* portföy */
 .ozet{background:var(--yuzey);border:1px solid var(--cizgi);border-radius:var(--r-kart);padding:16px;margin-top:14px}
 .ozet .buyuk{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.ozet .getiri{font-size:15px;font-weight:700;margin-top:2px} .ozet .getiri span{color:var(--gri);font-weight:500;font-size:13px;margin-left:6px}
+.ozet .dagilim{height:8px;border-radius:99px;background:var(--altin-acik);margin:14px 0 4px;overflow:hidden} .ozet .dagilim i{display:block;height:100%;background:var(--lacivert)}
+.ozet .kalemler{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:10px}
+.ozet .kalemler span{display:block;font-size:12px;color:var(--gri)} .ozet .kalemler b{font-size:15px}
+.ozet .not{display:block;color:var(--gri);font-size:11.5px;margin-top:10px;line-height:1.4}
 .ozet .satir{display:flex;justify-content:space-between;font-size:14px;color:var(--gri);margin-top:6px}
 .arti{color:var(--yesil)} .eksi{color:var(--kirmizi)}
 .oneri{display:flex;gap:10px;align-items:flex-start;margin:-2px -4px 10px;padding:9px 10px;border-radius:10px;background:var(--zemin);font-size:14px}
@@ -285,6 +290,7 @@ const $ = (s, k = document) => k.querySelector(s);
 const $$ = (s, k = document) => [...k.querySelectorAll(s)];
 const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const sayi = (x, d = 2) => (x == null || isNaN(x) ? "–" : Number(x).toLocaleString("tr-TR", { maximumFractionDigits: d }));
+const tutar = (x) => Math.round(x).toLocaleString("tr-TR") + " TL";
 const tl = (x) => (x >= 0 ? "+" : "−") + Math.abs(Math.round(x)).toLocaleString("tr-TR") + " TL";
 
 function bildir(m, sure = 3500) {
@@ -444,17 +450,21 @@ function cizSinyal() {
 }
 
 function cizPortfoy() {
-  let acikKZ = 0, gercek = 0, adet = 0;
+  let acikKZ = 0, gercek = 0, adet = 0, deger = 0, maliyet = 0, komToplam = 0;
   const uyarilar = [], sayac = {};
   let gruplar = "";
   for (const v of VADELER) {
     const p = S.portfoy[v]; if (!p) continue;
     (S.analiz.sonuc?.[v]?.islemler || []).forEach((u) => uyarilar.push(`<b>${v === "dip" ? "Dip alımı" : VADE_AD[v] + " vade"}:</b> ${esc(u)}`));
-    p.kapali.forEach((k) => (gercek += (k.cikis - k.giris) * k.lot * (fiyatBul(v, k.kod)?.carpan || 1)));
+    p.kapali.forEach((k) => {
+      gercek += k.kz ?? (k.cikis - k.giris) * k.lot * (k.carpan || fiyatBul(v, k.kod)?.carpan || 1);
+      komToplam += k.kom || 0;
+    });
     const SIRA = { "SAT": 0, "YARISINI SAT": 1, "EKLE": 2, "TUT": 3 };
     const kartlar = Object.entries(p.acik).map(([kod, pos]) => {
       const s = fiyatBul(v, kod), son = s ? s.fiyat : pos.giris, o = oneriBul(v, kod);
-      const kz = (son - pos.giris) * pos.lot * (pos.carpan || 1); acikKZ += kz; adet++;
+      const pd = son * pos.lot * (s?.carpan || pos.carpan || 1), pm = pos.giris * pos.lot * (pos.carpan || 1) + (pos.kom || 0);
+      const kz = pd - pm; acikKZ += kz; deger += pd; maliyet += pm; komToplam += pos.kom || 0; adet++;
       if (o && o.eylem !== "TUT") sayac[o.eylem] = (sayac[o.eylem] || 0) + 1;
       const yuzde = (son / pos.giris - 1) * 100;
       const kademe = v === "dip" && pos.plan ? `<div><span>Kademe</span>${pos.kademe} / ${pos.plan.length}</div>` : `<div><span>Açılış</span>${esc(tarih(pos.tarih))}</div>`;
@@ -474,10 +484,20 @@ function cizPortfoy() {
     }).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
     if (kartlar.length) gruplar += `<h2 class="bolum">${v === "dip" ? "Dip alımı" : VADE_AD[v] + " vade"}</h2>${kartlar.join("")}`;
   }
+  const sermaye = S.analiz.ayarlar?.sermaye || 100000, nakit = sermaye + gercek - maliyet;
+  const toplam = nakit + deger, toplamKZ = toplam - sermaye;
   $("#portfoyIcerik").innerHTML = `
-    <div class="ozet"><div class="vade-etiket">Açık pozisyonların kâr/zararı</div>
-      <div class="buyuk ${acikKZ >= 0 ? "arti" : "eksi"}">${tl(acikKZ)}</div>
-      <div class="satir"><span>${adet} açık pozisyon</span><span>Gerçekleşen: <b class="${gercek >= 0 ? "arti" : "eksi"}">${tl(gercek)}</b></span></div>
+    <div class="ozet"><div class="vade-etiket">Portföy değeri</div>
+      <div class="buyuk">${tutar(toplam)}</div>
+      <div class="getiri ${toplamKZ >= 0 ? "arti" : "eksi"}">${tl(toplamKZ)} (%${sayi(toplamKZ / sermaye * 100, 2)}) <span>başlangıç ${tutar(sermaye)}</span></div>
+      <div class="dagilim" aria-hidden="true"><i style="width:${Math.min(100, deger / Math.max(toplam, 1) * 100)}%"></i></div>
+      <div class="kalemler">
+        <div><span>Yatırımda</span><b>${tutar(deger)}</b></div><div><span>Nakit</span><b>${tutar(nakit)}</b></div>
+        <div><span>Açık kâr/zarar</span><b class="${acikKZ >= 0 ? "arti" : "eksi"}">${tl(acikKZ)}</b></div>
+        <div><span>Gerçekleşen</span><b class="${gercek >= 0 ? "arti" : "eksi"}">${tl(gercek)}</b></div>
+        <div><span>Ödenen komisyon</span><b>${tutar(komToplam)}</b></div><div><span>Açık pozisyon</span><b>${adet}</b></div>
+      </div>
+      <small class="not">Kâr/zarar alış ve satış komisyonları düşülerek hesaplanır; ABD varlıkları güncel dolar kuruyla TL'ye çevrilir.</small>
       ${adet ? `<div class="oneri-ozet">${Object.keys(sayac).length
         ? ["SAT", "YARISINI SAT", "EKLE", "TUT"].filter((e) => sayac[e]).map((e) => `<span class="rozet ${eSinif(e)}">${sayac[e]} × ${EYLEM_AD[e]}</span>`).join("")
         : `<span class="rozet e-TUT">Bugün işlem önerisi yok, hepsini tutun</span>`}</div>` : ""}</div>
@@ -578,30 +598,35 @@ async function islemYap(tur, vade, kod, satLot) {
   finally { S.mesgul = false; }
 }
 
+function demoKapat(p, kod, pos, lot, cikis, neden) {
+  const c = pos.carpan || 1, o = pos.kom_oran ?? 0.0015, pay = (pos.kom || 0) * lot / pos.lot, sat = cikis * lot * c * o;
+  pos.kom = (pos.kom || 0) - pay;
+  p.kapali.push({ kod, lot, giris: pos.giris, cikis, neden, carpan: c, kom: pay + sat, kz: (cikis - pos.giris) * lot * c - pay - sat });
+}
 function demoIslem(tur, vade, kod, lot) {
-  const p = S.portfoy[vade], x = fiyatBul(vade, kod);
+  const p = S.portfoy[vade], x = fiyatBul(vade, kod), akom = (pos, l) => x.fiyat * l * (x.carpan || 1) * (x.kom_oran ?? 0.0015);
   if (tur === "al") {
     const pos = p.acik[kod];
     if (pos && vade === "dip") {
-      const top = pos.lot + lot; pos.giris = (pos.giris * pos.lot + x.fiyat * lot) / top; pos.lot = top; pos.kademe++;
+      const top = pos.lot + lot; pos.kom = (pos.kom || 0) + akom(pos, lot); pos.giris = (pos.giris * pos.lot + x.fiyat * lot) / top; pos.lot = top; pos.kademe++;
       bildir(`${kod}: ${pos.kademe}. kademe eklendi (demo).`);
     } else {
-      p.acik[kod] = { giris: x.fiyat, stop: x.stop, hedef1: x.hedef1, hedef2: x.hedef2, lot, miktar: x.miktar, carpan: x.carpan,
+      p.acik[kod] = { giris: x.fiyat, stop: x.stop, hedef1: x.hedef1, hedef2: x.hedef2, lot, miktar: x.miktar, carpan: x.carpan, kom_oran: x.kom_oran ?? 0.0015, kom: akom(null, lot),
         tarih: new Date().toISOString().slice(0, 10), gun: 0, ...(vade === "dip" ? { kademe: 1, plan: x.kademeler } : {}) };
       bildir(`${kod}: ${lot} ${x.miktar} sanal alındı (demo).`);
     }
   } else if (tur === "ekle") {
-    const pos = p.acik[kod], top = pos.lot + lot, ilk = pos.giris;
+    const pos = p.acik[kod], top = pos.lot + lot, ilk = pos.giris; pos.kom = (pos.kom || 0) + akom(pos, lot);
     pos.giris = (pos.giris * pos.lot + x.fiyat * lot) / top; pos.lot = top; pos.stop = Math.max(pos.stop, ilk); pos.eklemeler = [1];
     delete S.analiz.sonuc[vade].oneriler[kod];
     bildir(`${ad(kod)}: ${lot} ${x.miktar} eklendi, stop ${sayi(pos.stop)} (demo).`);
   } else if (lot > 0 && lot < p.acik[kod].lot) {
-    const pos = p.acik[kod]; p.kapali.push({ kod, lot, giris: pos.giris, cikis: x.fiyat, neden: "ELLE KISMİ SATIŞ" });
+    const pos = p.acik[kod]; demoKapat(p, kod, pos, lot, x.fiyat, "ELLE KISMİ SATIŞ");
     pos.lot = +(pos.lot - lot).toFixed(2); pos.yarim = true; pos.stop = Math.max(pos.stop, pos.giris);
     delete S.analiz.sonuc[vade].oneriler[kod];
     bildir(`${ad(kod)}: ${sayi(lot)} ${x.miktar} satıldı, stop maliyete çekildi (demo).`);
   } else {
-    const pos = p.acik[kod]; p.kapali.push({ kod, lot: pos.lot, giris: pos.giris, cikis: x.fiyat, neden: "ELLE SATIŞ" });
+    const pos = p.acik[kod]; demoKapat(p, kod, pos, pos.lot, x.fiyat, "ELLE SATIŞ");
     delete p.acik[kod]; bildir(`${ad(kod)} sanal satıldı (demo).`);
   }
   ciz();
