@@ -101,9 +101,12 @@ h2.bolum{font-size:15px;font-weight:700;margin:18px 2px 8px;color:var(--gri)}
 .arti{color:var(--yesil)} .eksi{color:var(--kirmizi)}
 .oneri{display:flex;gap:10px;align-items:flex-start;margin:-2px -4px 10px;padding:9px 10px;border-radius:10px;background:var(--zemin);font-size:14px}
 .oneri b.e{flex:none;font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap;margin-top:1px}
-.e-TUT{background:var(--cizgi);color:var(--murekkep)} .e-SAT{background:var(--kirmizi);color:#fff}
+.e-TUT{background:#2F6FB3;color:#fff} .e-SAT{background:var(--kirmizi);color:#fff}
 .e-YARISINI{background:var(--altin);color:#fff} .e-EKLE{background:var(--yesil);color:#fff}
-.oneri.vurgu-SAT{background:var(--kirmizi-acik)} .oneri.vurgu-YARISINI{background:var(--altin-acik)} .oneri.vurgu-EKLE{background:var(--yesil-acik)}
+.oneri.vurgu-TUT{background:#E4EEF8} .oneri.vurgu-SAT{background:var(--kirmizi-acik)} .oneri.vurgu-YARISINI{background:var(--altin-acik)} .oneri.vurgu-EKLE{background:var(--yesil-acik)}
+.kart.k-TUT{border-left:5px solid #2F6FB3} .kart.k-SAT{border-left:5px solid var(--kirmizi)}
+.kart.k-YARISINI{border-left:5px solid var(--altin)} .kart.k-EKLE{border-left:5px solid var(--yesil)}
+.r-portfoy.e-TUT{background:#2F6FB3}
 .oneri small{display:block;color:var(--gri);margin-top:2px}
 .oneri-ozet{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .uyari{background:var(--sari-acik);border-radius:var(--r-kucuk);padding:10px 12px;margin-bottom:8px;font-size:14px}
@@ -374,11 +377,11 @@ const oneriBul = (v, kod) => S.analiz?.sonuc?.[v]?.oneriler?.[kod];
 function oneriKutu(o) {
   if (!o) return "";
   const n = o.neden || [];
-  return `<div class="oneri ${o.eylem === "TUT" ? "" : "vurgu-" + String(o.eylem).split(" ")[0]}"><b class="e ${eSinif(o.eylem)}">${esc(EYLEM_AD[o.eylem] || o.eylem)}</b>
+  return `<div class="oneri vurgu-${String(o.eylem).split(" ")[0]}"><b class="e ${eSinif(o.eylem)}">${esc(EYLEM_AD[o.eylem] || o.eylem)}</b>
     <div>${esc(n[0] || "")}${n.slice(1).map((x) => `<small>${esc(x)}</small>`).join("")}</div></div>`;
 }
 function rozet(k, portfoyde, o) {
-  if (portfoyde) return `<span class="rozet r-portfoy">Portföyde${o && o.eylem !== "TUT" ? ": " + esc(EYLEM_AD[o.eylem]) : ""}</span>`;
+  if (portfoyde) return `<span class="rozet r-portfoy ${o ? eSinif(o.eylem) : ""}">Portföyde${o && o.eylem !== "TUT" ? ": " + esc(EYLEM_AD[o.eylem]) : ""}</span>`;
   const c = k === "GÜÇLÜ AL" ? "r-gal" : AL.includes(k) ? "r-al" : k === "GÜÇLÜ SAT" ? "r-gsat"
     : ["SAT", "SAT / UZAK DUR"].includes(k) ? "r-sat" : ["İZLE", "TEYİT BEKLE"].includes(k) ? "r-izle" : "r-notr";
   return `<span class="rozet ${c}">${esc(k)}</span>`;
@@ -461,7 +464,7 @@ function cizPortfoy() {
       else if (o?.eylem === "EKLE") ana = `<button class="btn btn-al btn-kucuk" data-islem="${v === "dip" ? "detay" : "ekleac"}" ${ik}>${v === "dip" ? `${pos.kademe + 1}. kademeyi ekle` : `Ekle (${sayi(o.miktar)} ${m})`}</button>`;
       else if (v === "dip" && pos.plan && pos.kademe < pos.plan.length && s) ana = `<button class="btn btn-ikincil btn-kucuk" data-islem="detay" ${ik}>${pos.kademe + 1}. kademe</button>`;
       const sat = `<button class="btn ${o?.eylem === "SAT" ? "btn-sat" : "btn-ikincil"} btn-kucuk" data-islem="sat" ${ik}>${o?.eylem === "SAT" ? "Tümünü sat" : "Sat"}</button>`;
-      return [SIRA[o?.eylem] ?? 3, `<div class="kart" style="cursor:default">
+      return [SIRA[o?.eylem] ?? 3, `<div class="kart ${o ? "k-" + String(o.eylem).split(" ")[0] : ""}" style="cursor:default">
         ${oneriKutu(o)}
         <div class="k-ust"><span class="kod">${esc(ad(kod))}</span><span class="sektor">${sayi(pos.lot)} ${m}</span>
           <span class="fiyat ${kz >= 0 ? "arti" : "eksi"}">${tl(kz)}</span></div>
@@ -476,7 +479,7 @@ function cizPortfoy() {
       <div class="buyuk ${acikKZ >= 0 ? "arti" : "eksi"}">${tl(acikKZ)}</div>
       <div class="satir"><span>${adet} açık pozisyon</span><span>Gerçekleşen: <b class="${gercek >= 0 ? "arti" : "eksi"}">${tl(gercek)}</b></span></div>
       ${adet ? `<div class="oneri-ozet">${Object.keys(sayac).length
-        ? ["SAT", "YARISINI SAT", "EKLE"].filter((e) => sayac[e]).map((e) => `<span class="rozet ${eSinif(e)}">${sayac[e]} × ${EYLEM_AD[e]}</span>`).join("")
+        ? ["SAT", "YARISINI SAT", "EKLE", "TUT"].filter((e) => sayac[e]).map((e) => `<span class="rozet ${eSinif(e)}">${sayac[e]} × ${EYLEM_AD[e]}</span>`).join("")
         : `<span class="rozet e-TUT">Bugün işlem önerisi yok, hepsini tutun</span>`}</div>` : ""}</div>
     ${uyarilar.length ? `<h2 class="bolum">Bugünkü uyarılar</h2>${uyarilar.map((u) => `<div class="uyari">${u}</div>`).join("")}` : ""}
     ${gruplar || `<div class="bos"><b>Portföyünüz boş</b>Sinyaller ekranında bir varlığa dokunup <i>Sanal al</i> ile pozisyon açabilirsiniz.</div>`}`;

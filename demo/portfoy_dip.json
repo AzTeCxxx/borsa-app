@@ -1,4 +1,34 @@
 {
-  "acik": {},
+  "acik": {
+    "BAKIR": {
+      "giris": 197.68,
+      "stop": 147.68,
+      "hedef1": 220.35,
+      "hedef2": 245.26,
+      "lot": 0.08,
+      "sektor": "bakir",
+      "tarih": "2026-11-24",
+      "gun": 0,
+      "yarim": false,
+      "miktar": "libre",
+      "carpan": 34.0,
+      "piyasa": "US",
+      "grup": "maden",
+      "son_bar": "2026-11-24",
+      "kademe": 1,
+      "plan": [
+        197.68,
+        185.82,
+        173.96
+      ],
+      "kademeler": [
+        {
+          "fiyat": 197.68,
+          "lot": 0.08,
+          "tarih": "2026-11-24"
+        }
+      ]
+    }
+  },
   "kapali": []
 }

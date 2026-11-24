@@ -1,4 +1,21 @@
 {
-  "acik": {},
+  "acik": {
+    "ONS_ALTIN": {
+      "giris": 55.72,
+      "stop": 53.53,
+      "hedef1": 59.0,
+      "hedef2": 62.29,
+      "lot": 5,
+      "sektor": "altin",
+      "tarih": "2026-11-24",
+      "gun": 0,
+      "yarim": false,
+      "miktar": "ons",
+      "carpan": 34.0,
+      "piyasa": "US",
+      "grup": "maden",
+      "son_bar": "2026-11-24"
+    }
+  },
   "kapali": []
 }
