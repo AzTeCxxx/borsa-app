@@ -169,6 +169,14 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 .kap-liste{list-style:none;padding:0;margin:4px 0 14px} .kap-liste li{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--cizgi);font-size:14px}
 .kap-liste a{color:inherit} .kap-liste small{display:block;color:var(--gri);font-size:12px} .kap-nokta{width:14px;flex:none;font-weight:800;color:var(--gri)}
 .kap-nokta.arti{color:var(--yesil)} .kap-nokta.eksi{color:var(--kirmizi)}
+.bugun-ust{padding:6px 2px 8px} .bugun-ust h2{font-size:24px;margin:2px 0 4px} .bugun-ust p{margin:0;color:var(--gri);font-size:14px}
+.bolum-baslik{font-size:14px;color:var(--gri);margin:18px 2px 8px;font-weight:700}
+.kart.is{border-left:5px solid var(--cizgi)} .kart.is-sat{border-left-color:var(--kirmizi)} .kart.is-yarim{border-left-color:var(--altin)}
+.kart.is-ekle,.kart.is-al{border-left-color:var(--yesil)}
+.is-ust{display:flex;justify-content:space-between;gap:10px;align-items:baseline} .is-ust b{font-size:16px}
+.is-miktar{font-weight:800;font-size:17px;white-space:nowrap} .is-alt{display:block;color:var(--gri);font-size:13px;margin-top:4px;line-height:1.4}
+.bugun-not{margin:0;padding-left:18px;color:var(--gri);font-size:13.5px} .bugun-not li{margin-bottom:6px}
+.uyari-alt{color:var(--gri);font-size:12px;margin:18px 2px}
 .miktar-not{font-size:13px;color:var(--gri);margin:-4px 0 12px;text-align:center}
 .kademeler{display:flex;gap:6px;margin:6px 0 16px}
 .kademeler div{flex:1;border:1px solid var(--cizgi);border-radius:10px;padding:8px;text-align:center;font-size:13px}
@@ -186,7 +194,7 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 <header>
   <div class="ust-satir">
     <div style="flex:1">
-      <h1 id="baslik">Sinyaller</h1>
+      <h1 id="baslik">Bugün</h1>
       <div class="guncel" id="guncel">Veri yükleniyor…</div>
     </div>
     <button class="yenile" id="yenileBtn" aria-label="Verileri yenile" title="Verileri yenile">
@@ -197,7 +205,9 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 </header>
 
 <!-- SİNYALLER -->
-<section id="ekran-sinyal">
+<section id="ekran-bugun"><main id="bugunIcerik"></main></section>
+
+<section id="ekran-sinyal" class="gizli">
   <div class="secici" role="group" aria-label="Piyasa">
     <button data-piyasa="TR" aria-pressed="true">🇹🇷 Türkiye</button>
     <button data-piyasa="US" aria-pressed="false">🇺🇸 ABD</button>
@@ -248,7 +258,8 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 </section>
 
 <nav class="alt" aria-label="Ana gezinme">
-  <button data-ekran="sinyal" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg>Sinyaller</button>
+  <button data-ekran="bugun" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Bugün</button>
+  <button data-ekran="sinyal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V10M10 19V5M16 19v-7M22 19H2"/></svg>Sinyaller</button>
   <button data-ekran="portfoy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Portföy</button>
   <button data-ekran="haber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/></svg>Haberler</button>
   <button data-ekran="ayar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ayarlar</button>
@@ -267,7 +278,7 @@ const AL = ["GÜÇLÜ AL", "AL", "KADEMELİ AL"];
 const S = {
   ayar: JSON.parse(localStorage.getItem("ab_ayar") || "null"),
   demo: new URLSearchParams(location.search).has("demo") || localStorage.getItem("ab_demo") === "1",
-  analiz: null, portfoy: {}, ekran: "sinyal",
+  analiz: null, portfoy: {}, ekran: "bugun",
   piyasa: localStorage.getItem("ab_piyasa") || "TR", grup: localStorage.getItem("ab_grup") || "hisse",
   vade: localStorage.getItem("ab_vade") || "kisa", mesgul: false,
 };
@@ -411,9 +422,67 @@ function olcer(x, vade) {
 /* ============================================================ çizim */
 function ciz() {
   if (!S.analiz) return;
+  if (S.ekran === "bugun") cizBugun();
   if (S.ekran === "sinyal") cizSinyal();
   if (S.ekran === "portfoy") cizPortfoy();
   if (S.ekran === "haber") cizHaber();
+}
+
+/* ============================================================ bugün: yapılacaklar listesi */
+function bugunListesi() {
+  const sonuc = S.analiz.sonuc, ay = S.analiz.ayarlar || {}, maks = ay.maks_pozisyon || 5;
+  const sat = [], ekle = [], al = [], notlar = [];
+  for (const v of VADELER) {
+    if (!sonuc[v]) continue;
+    const p = S.portfoy[v] || { acik: {}, kapali: [] }, acik = p.acik || {}, o = sonuc[v].oneriler || {};
+    // Bu vadenin nakdi: sermaye payı + gerçekleşen K/Z - açık pozisyonların maliyeti
+    let nakit = (ay.sermaye || 100000) * ((ay.sermaye_dagilimi || {})[v] ?? 0.25);
+    (p.kapali || []).forEach((k) => (nakit += k.kz ?? (k.cikis - k.giris) * k.lot * (k.carpan || 1)));
+    for (const [kod, pos] of Object.entries(acik)) {
+      nakit -= pos.giris * pos.lot * (pos.carpan || 1) + (pos.kom || 0);
+      const x = fiyatBul(v, kod), e = o[kod];
+      if (!e || !x) continue;
+      const m = e.eylem === "SAT" ? pos.lot : e.miktar, tutarTL = m * x.fiyat * (x.carpan || 1);
+      const is = { vade: v, kod, miktar: m, birim: pos.miktar || "lot", tutar: tutarTL, neden: [].concat(e.neden || []).join(" ") };
+      if (e.eylem === "SAT") sat.push({ ...is, tur: "sat", metin: `${ad(kod)} pozisyonunun tamamını sat` });
+      else if (e.eylem === "YARISINI SAT") sat.push({ ...is, tur: "yarim", metin: `${ad(kod)} pozisyonunun yarısını sat` });
+      else if (e.eylem === "EKLE") ekle.push({ ...is, tur: "ekle", metin: `${ad(kod)} pozisyonuna ekle` });
+    }
+    // Yeni alımlar: boş yer ve nakit varsa, skora göre
+    let yer = maks - Object.keys(acik).length, yetmeyen = 0;
+    const adaylar = (sonuc[v].sinyaller || []).filter((x) => AL.includes(x.karar) && !acik[x.kod] && x.lot > 0).sort((a, b) => b.skor - a.skor);
+    for (const x of adaylar) {
+      const t = x.lot * x.fiyat * (x.carpan || 1) * (1 + (x.kom_oran ?? 0.0021));
+      if (yer <= 0) { notlar.push(`${VADE_AD[v]}: ${adaylar.length - adaylar.indexOf(x)} AL sinyali daha var ama ${maks} pozisyon sınırı dolu.`); break; }
+      if (t > nakit) { yetmeyen++; continue; }
+      const baska = VADELER.filter((w) => w !== v && S.portfoy[w]?.acik?.[x.kod]).map((w) => VADE_AD[w]);
+      al.push({ vade: v, kod: x.kod, miktar: x.lot, birim: x.miktar || "lot", tutar: t, tur: "al", skor: x.skor,
+        metin: v === "dip" ? `${ad(x.kod)}: dip alımının 1. kademesini al` : `${ad(x.kod)} al`,
+        neden: `${baska.length ? `Zaten ${baska.join(", ")} vadede portföyde. ` : ""}Stop ${sayi(x.stop)}, hedef ${sayi(x.hedef1)}${x.tutma ? ", " + x.tutma : ""}` });
+      nakit -= t; yer--;
+    }
+    if (yetmeyen) notlar.push(`${VADE_AD[v]}: ${yetmeyen} AL sinyali için bu vadenin nakdi yetmiyor (kalan ≈ ${tutar(Math.max(0, nakit))}).`);
+    const kapali = Object.entries(sonuc[v].rejim_txt || {}).filter(([, t]) => String(t).startsWith("KAPALI")).map(([pz]) => pz === "TR" ? "Türkiye" : "ABD");
+    if (kapali.length && v !== "dip") notlar.push(`${VADE_AD[v]}: ${kapali.join(" ve ")} piyasası 10 aylık ortalamasının altında, yeni alım önerilmiyor.`);
+  }
+  return { sat, ekle, al, notlar: [...new Set(notlar)] };
+}
+
+function cizBugun() {
+  const { sat, ekle, al, notlar } = bugunListesi();
+  const satir = (i) => `<button class="kart is is-${i.tur}" data-yap="${i.tur}" data-vade="${i.vade}" data-kod="${esc(i.kod)}" data-miktar="${i.miktar}">
+      <span class="is-ust"><b>${esc(i.metin)}</b><span class="is-miktar">${sayi(i.miktar)} ${esc(i.birim)}</span></span>
+      <span class="is-alt">${VADE_AD[i.vade]} · ≈ ${tutar(i.tutar)} · ${esc(i.neden || "")}</span></button>`;
+  const bolum = (baslik, l) => l.length ? `<h3 class="bolum-baslik">${baslik}</h3>${l.map(satir).join("")}` : "";
+  const toplam = sat.length + ekle.length + al.length;
+  const ozet = toplam ? [sat.length && `${sat.length} satış`, ekle.length && `${ekle.length} ekleme`, al.length && `${al.length} alım`].filter(Boolean).join(", ")
+    : "Bugün yapılacak işlem yok";
+  $("#bugunIcerik").innerHTML = `
+    <div class="bugun-ust"><div class="vade-etiket">${esc(analizZamani(S.analiz.tarih).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }))} analizine göre</div><h2>${ozet}</h2>
+      ${toplam ? "<p>Bir öneriye dokunun; miktarı kontrol edip onaylayın.</p>" : "<p>Portföyünüzdeki pozisyonları tutun, stoplar yerinde.</p>"}</div>
+    ${bolum("Önce satışlar", sat)}${bolum("Eklemeler", ekle)}${bolum("Yeni alımlar", al)}
+    ${notlar.length ? `<h3 class="bolum-baslik">Bilgi</h3><ul class="bugun-not">${notlar.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
+    <p class="uyari-alt">Bunlar programın ürettiği sanal öneriler, yatırım tavsiyesi değildir. Gerçek işlemi bankanızda siz yaparsınız.</p>`;
 }
 
 function cizSinyal() {
@@ -687,7 +756,7 @@ async function yenile() {
 }
 
 /* ============================================================ gezinme ve olaylar */
-const BASLIK = { sinyal: "Sinyaller", portfoy: "Portföy", haber: "Haberler", ayar: "Ayarlar" };
+const BASLIK = { bugun: "Bugün", sinyal: "Sinyaller", portfoy: "Portföy", haber: "Haberler", ayar: "Ayarlar" };
 function ekranGoster(e) {
   S.ekran = e;
   for (const k of Object.keys(BASLIK)) $("#ekran-" + k).classList.toggle("gizli", k !== e);
@@ -708,6 +777,13 @@ document.addEventListener("click", (ev) => {
   if (t.dataset.piyasa) { S.piyasa = t.dataset.piyasa; localStorage.setItem("ab_piyasa", S.piyasa); return cizSinyal(); }
   if (t.dataset.grup) { S.grup = t.dataset.grup; localStorage.setItem("ab_grup", S.grup); return cizSinyal(); }
   if (t.classList.contains("cip")) { S.vade = t.dataset.vade; localStorage.setItem("ab_vade", S.vade); return cizSinyal(); }
+  if (t.dataset.yap) {
+    const sat = ["sat", "yarim"].includes(t.dataset.yap);
+    panelAc(t.dataset.vade, t.dataset.kod, sat ? "sat" : "ekle");
+    const i = $(sat ? "#satGir" : "#miktarGir");
+    if (i) { i.value = t.dataset.miktar; miktarNotGuncelle(); }
+    return;
+  }
   if (t.classList.contains("kart") && t.dataset.kod) return panelAc(S.vade, t.dataset.kod);
   if (t.dataset.adim) {
     const i = $("#" + (t.dataset.hedef || "miktarGir")), ust = i.dataset.max ? +i.dataset.max : Infinity;
@@ -731,9 +807,9 @@ $("#kaydetBtn").addEventListener("click", async () => {
   if (!a.kullanici || !a.depo || !a.token) return bildir("Üç alanı da doldurun.");
   S.ayar = a; S.demo = false; localStorage.setItem("ab_ayar", JSON.stringify(a)); localStorage.removeItem("ab_demo");
   S.portfoy = {}; bildir("Bağlanılıyor…"); await verileriYukle();
-  if (S.analiz) { bildir("Bağlandı."); ekranGoster("sinyal"); }
+  if (S.analiz) { bildir("Bağlandı."); ekranGoster("bugun"); }
 });
-$("#demoBtn").addEventListener("click", async () => { S.demo = true; localStorage.setItem("ab_demo", "1"); S.portfoy = {}; await verileriYukle(); ekranGoster("sinyal"); });
+$("#demoBtn").addEventListener("click", async () => { S.demo = true; localStorage.setItem("ab_demo", "1"); S.portfoy = {}; await verileriYukle(); ekranGoster("bugun"); });
 $("#unutBtn").addEventListener("click", () => {
   if (!confirm("Erişim anahtarı bu telefondan silinsin mi?")) return;
   localStorage.removeItem("ab_ayar"); S.ayar = null; ayarDoldur(); bildir("Anahtar silindi.");
