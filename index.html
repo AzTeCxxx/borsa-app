@@ -166,6 +166,9 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 .miktar input{flex:1;min-width:0;text-align:center;font:inherit;font-size:20px;font-weight:800;padding:10px;border-radius:12px;border:1px solid var(--cizgi);background:var(--yuzey);color:var(--murekkep)}
 .ekle-bilgi{font-size:13.5px;background:var(--zemin);border-radius:10px;padding:9px 11px;margin:4px 0 12px}
 .ekle-bilgi.evet{background:var(--yesil-acik)}
+.kap-liste{list-style:none;padding:0;margin:4px 0 14px} .kap-liste li{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--cizgi);font-size:14px}
+.kap-liste a{color:inherit} .kap-liste small{display:block;color:var(--gri);font-size:12px} .kap-nokta{width:14px;flex:none;font-weight:800;color:var(--gri)}
+.kap-nokta.arti{color:var(--yesil)} .kap-nokta.eksi{color:var(--kirmizi)}
 .miktar-not{font-size:13px;color:var(--gri);margin:-4px 0 12px;text-align:center}
 .kademeler{display:flex;gap:6px;margin:6px 0 16px}
 .kademeler div{flex:1;border:1px solid var(--cizgi);border-radius:10px;padding:8px;text-align:center;font-size:13px}
@@ -576,6 +579,9 @@ function panelAc(vade, kod, mod) {
     ${pos ? `<div class="vade-etiket" style="margin-top:14px">Portföyünüzdeki ${sayi(pos.lot)} ${esc(x.miktar)} için bugünkü öneri</div>${oneriKutu(o)}` : ""}
     <div class="detay">${detay}</div>${kademeler}
     <div class="vade-etiket">Neden?</div><ul class="gerekce">${(x.gerekce || []).map((g) => `<li>${esc(g)}</li>`).join("") || "<li>–</li>"}</ul>
+    ${x.kap?.length ? `<div class="vade-etiket">KAP bildirimleri (son 3 gün)</div><ul class="kap-liste">${x.kap.map((b) => `<li>
+      <span class="kap-nokta ${b.etki > 0 ? "arti" : b.etki < 0 ? "eksi" : ""}">${b.etki > 0 ? "▲" : b.etki < 0 ? "▼" : "•"}</span>
+      <span>${b.link ? `<a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.baslik)}</a>` : esc(b.baslik)}<small>${esc(b.tarih)}</small></span></li>`).join("")}</ul>` : ""}
     ${eylem}`;
   miktarNotGuncelle();
   $("#ortu").classList.add("acik"); $("#panel").classList.add("acik");
