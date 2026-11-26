@@ -37,6 +37,7 @@ header{background:var(--lacivert);color:#fff;padding:calc(12px + var(--ust)) 16p
 .ust-satir{display:flex;align-items:center;gap:12px}
 .ust-satir h1{font-size:20px;font-weight:800;margin:0;flex:1;letter-spacing:-.2px}
 .guncel{font-size:13px;opacity:.8;margin-top:2px}
+.dil-btn{height:34px;min-width:44px;margin-right:8px;border-radius:17px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:700;font-size:13px;letter-spacing:.5px}
 .yenile{width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);
   display:grid;place-items:center;cursor:pointer}
 .yenile:active{background:rgba(255,255,255,.2)}
@@ -178,7 +179,7 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 .bugun-not{margin:0;padding-left:18px;color:var(--gri);font-size:13.5px} .bugun-not li{margin-bottom:6px}
 .uyari-alt{color:var(--gri);font-size:12px;margin:18px 2px}
 .seviye{list-style:none;padding:0;margin:4px 0 4px;border-left:3px solid var(--cizgi)}
-.seviye li{display:grid;grid-template-columns:78px 1fr auto;align-items:baseline;gap:8px;padding:5px 10px;font-size:14px}
+.seviye li{display:grid;grid-template-columns:96px 1fr auto;align-items:baseline;gap:8px;padding:5px 10px;font-size:14px}
 .seviye li span{color:var(--gri);font-size:13px} .seviye li small{color:var(--gri);font-size:12px}
 .seviye li.dir b{color:var(--kirmizi)} .seviye li.des b{color:var(--yesil)} .seviye li.fiyat{background:var(--zemin);font-weight:700}
 .seviye-not{display:block;color:var(--gri);font-size:12px;margin-bottom:14px}
@@ -202,6 +203,7 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
       <h1 id="baslik">Bugün</h1>
       <div class="guncel" id="guncel">Veri yükleniyor…</div>
     </div>
+    <button class="dil-btn" id="dilBtn" aria-label="Language / Dil">EN</button>
     <button class="yenile" id="yenileBtn" aria-label="Verileri yenile" title="Verileri yenile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
     </button>
@@ -276,6 +278,242 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 <div class="bildirim" id="bildirim" role="status" aria-live="polite"></div>
 
 <script>
+/* ============================================================ dil (TR / EN)
+   Türkçe metinler ekrana yazıldıktan sonra İngilizceye çevrilir: önce tam eşleşme (SOZ), sonra kalıplar (KALIP,
+   sayıları yakalar), en son kelime/ifade parçaları (PARCA). Haber başlıkları (.ham) orijinal dilinde kalır. */
+const DIL = (() => { try { return localStorage.getItem("ab_dil") || "tr"; } catch (e) { return "tr"; } })();
+const LOC = DIL === "en" ? "en-US" : "tr-TR";
+const N = "([-+−]?[\\d.,]+)";
+const SOZ = new Map(Object.entries({
+  "Bugün": "Today", "Sinyaller": "Signals", "Portföy": "Portfolio", "Haberler": "News", "Ayarlar": "Settings",
+  "Veri yükleniyor…": "Loading data…", "Verileri yenile": "Refresh data", "Yenile": "Refresh", "Ana gezinme": "Main navigation",
+  "Hisseler": "Stocks", "Kıymetli madenler": "Precious metals", "Kısa": "Short", "Orta": "Medium", "Uzun": "Long",
+  "Dip alımı": "Dip buying", "Kısa vade": "Short term", "Orta vade": "Medium term", "Uzun vade": "Long term",
+  "AL": "BUY", "SAT": "SELL", "NÖTR": "NEUTRAL", "İZLE": "WATCH", "KADEMELİ AL": "BUY IN STAGES", "TEYİT BEKLE": "AWAIT CONFIRMATION",
+  "GÜÇLÜ AL": "STRONG BUY", "GÜÇLÜ SAT": "STRONG SELL", "SAT / UZAK DUR": "SELL / AVOID", "KOŞUL YOK": "NO SETUP",
+  "Al": "Buy", "Sat": "Sell", "Tut": "Hold", "Ekle": "Add", "Yarısını sat": "Sell half", "Tümünü sat": "Sell all",
+  "Sanal al": "Virtual buy", "Sanal sat": "Virtual sell", "Sanal al / sat": "Virtual buy / sell", "Daha fazla al": "Buy more",
+  "Portföyde": "In portfolio", "Portföyde: Ekle": "In portfolio: Add", "Portföyde: Sat": "In portfolio: Sell",
+  "Portföyde: Yarısını sat": "In portfolio: Sell half",
+  "Fiyat": "Price", "Son fiyat": "Last price", "Alım bölgesi": "Buy zone", "Stop": "Stop", "Hedef 1 / 2": "Target 1 / 2",
+  "Önerilen miktar": "Suggested quantity", "Skor": "Score", "Neden?": "Why?", "Miktar": "Quantity", "Satılacak miktar": "Quantity to sell",
+  "Artır": "Increase", "Azalt": "Decrease", "Maliyet": "Cost", "Vade": "Term", "Piyasa": "Market", "Varlık grubu": "Asset group",
+  "Zirveden düşüş": "Drop from peak", "RSI dibi": "RSI low", "Kademe planı": "Staging plan", "Kademe": "Stage", "Şimdi": "Now",
+  "Portföy değeri": "Portfolio value", "Yatırımda": "Invested", "Nakit": "Cash", "Açık kâr/zarar": "Open P/L",
+  "Gerçekleşen": "Realized", "Ödenen komisyon": "Commission paid", "Açık pozisyon": "Open positions", "Açılış": "Opened",
+  "Önce satışlar": "Sales first", "Eklemeler": "Additions", "Yeni alımlar": "New buys", "Bilgi": "Info",
+  "Bugün yapılacak işlem yok": "No trades today", "Bir öneriye dokunun; miktarı kontrol edip onaylayın.": "Tap a suggestion; check the quantity and confirm.",
+  "Portföyünüzdeki pozisyonları tutun, stoplar yerinde.": "Hold your positions; stops are in place.",
+  "Bunlar programın ürettiği sanal öneriler, yatırım tavsiyesi değildir. Gerçek işlemi bankanızda siz yaparsınız.":
+    "These are virtual suggestions generated by the program, not investment advice. You place real orders at your bank.",
+  "Sinyaller algoritmik olarak üretilir ve yatırım tavsiyesi değildir. Sanal portföy gerçek emir göndermez.":
+    "Signals are generated algorithmically and are not investment advice. The virtual portfolio sends no real orders.",
+  "Bugün bu bölümde AL sinyali yok": "No BUY signals in this section today", "Aşağıdaki listeden yine de inceleyip alabilirsiniz.": "You can still review and buy from the list below.",
+  "AL sinyali verenler ve portföydekiler": "BUY signals and holdings", "Dip alım adayları ve portföydekiler": "Dip-buy candidates and holdings",
+  "Diğerleri": "Others", "AL eşiği": "BUY threshold",
+  "Program bugün eklemeyi öneriyor.": "The program suggests adding today.",
+  "Program bugün eklemeyi önermiyor; eklerseniz kendi kararınız olur.": "The program does not suggest adding today; adding is your own call.",
+  "Ortalama maliyetiniz yeniden hesaplanır.": "Your average cost is recalculated.",
+  "Fiyatın geçmişte döndüğü bölgeler. Direnç üstünde kapanış güç, destek altında kapanış zayıflık işaretidir.":
+    "Levels where price turned in the past. A close above resistance signals strength; a close below support signals weakness.",
+  "Piyasa yorumu": "Market comment",
+  "Kâr/zarar VakıfBank komisyonları (alış ve satış, BSMV dahil) düşülerek hesaplanır; ABD varlıkları güncel dolar kuruyla TL'ye çevrilir.":
+    "P/L is net of VakıfBank commissions (buy and sell, incl. tax); US assets are converted to TL at the current dollar rate.",
+  "Uygulama verileri GitHub deponuzdan okur.": "The app reads its data from your GitHub repository.",
+  "GitHub kullanıcı adı": "GitHub username", "Depo adı": "Repository name", "Erişim anahtarı (token)": "Access key (token)",
+  "Yalnızca bu telefonda saklanır. Telefonu kaybederseniz GitHub'dan anahtarı silin.": "Stored only on this phone. If you lose the phone, delete the key on GitHub.",
+  "Yenilediğimde raporu Telegram'a da gönder": "Also send the report to Telegram when I refresh",
+  "Uygulamayı açınca bugünün analizi yoksa otomatik başlat": "Start today's analysis automatically when the app opens",
+  "Kaydet ve bağlan": "Save and connect", "Anahtarı sil": "Delete key", "Demo verisiyle dene": "Try with demo data",
+  "Uygulamayı yükle": "Install the app", "Ana ekrana ekle": "Add to home screen", "Ana Ekrana Ekle": "Add to Home Screen",
+  "Ana ekrana ekleme": "Adding to home screen", "veya": "or", "ör. isasaglam": "e.g. isasaglam", "Paylaş düğmesi →": "Share button →",
+  "⋮ menüsü →": "⋮ menu →", "butonu analizi orada başlatır,": "button starts the analysis there,",
+  "işlemleri de oraya kaydedilir. Bilgisayarınızın açık olması gerekmez.": "and trades are saved there too. Your computer does not need to be on.",
+  "Dil": "Language",
+  // bildirimler
+  "Önceki işlem bitmeden yenisi başlatılamaz.": "Wait for the previous action to finish.", "Geçerli bir miktar girin.": "Enter a valid quantity.",
+  "Şu an bir işlem sürüyor.": "An action is already running.", "Demo verisi yeniden yüklendi.": "Demo data reloaded.",
+  "Analiz başlatıldı. Genellikle 3–6 dakika sürer; uygulamayı kapatabilirsiniz.": "Analysis started. It usually takes 3–6 minutes; you can close the app.",
+  "Analiz bitti ama yeni veri henüz görünmüyor. Bir dakika sonra sayfayı yenileyin.": "Analysis finished but new data is not visible yet. Refresh in a minute.",
+  "Bugünün analizi şu an bulutta çalışıyor; birkaç dakika sonra yenileyin.": "Today's analysis is running in the cloud; refresh in a few minutes.",
+  "Bugünün analizi henüz yapılmamış; otomatik başlatıldı (3–6 dk).": "Today's analysis hadn't run yet; started it automatically (3–6 min).",
+  "Üç alanı da doldurun.": "Fill in all three fields.", "Bağlanılıyor…": "Connecting…", "Bağlandı.": "Connected.",
+  "Erişim anahtarı bu telefondan silinsin mi?": "Delete the access key from this phone?", "Anahtar silindi.": "Key deleted.",
+  "Erişim anahtarı geçersiz (401).": "Invalid access key (401).", "az önce": "just now",
+  "Anahtarın 'Actions: okuma ve yazma' izni yok ya da depo adı yanlış.": "The key lacks 'Actions: read and write' permission, or the repository name is wrong.",
+  // gerekçeler (sabit)
+  "MACD momentumu artıyor": "MACD momentum rising", "MACD momentumu zayıflıyor": "MACD momentum weakening",
+  "Hacimli satış": "Selling on high volume", "Yükselişe hacim eşlik ediyor": "Rally backed by volume", "Borçluluk yüksek": "High debt",
+  "Dönüş teyidi var: kapanış önceki haftanın tepesinin üstünde": "Reversal confirmed: close above last week's high",
+  "Teyit yok: düşüş sürüyor olabilir": "No confirmation: the decline may continue",
+  "Not: ekleme (piramit) kuralı geçmiş testte sınanmadı": "Note: the add (pyramiding) rule was not backtested",
+  // KAP başlıkları
+  "Yeni İş İlişkisi": "New business relationship", "Payların Geri Alınmasına İlişkin Bildirim": "Share buyback notice",
+  "Kar Payı Dağıtım İşlemlerine İlişkin Bildirim": "Dividend distribution notice", "Pay Alım Satım Bildirimi": "Insider share trade notice",
+  "Özel Durum Açıklaması (Genel)": "Material event disclosure (general)", "Finansal Rapor": "Financial report",
+  "Ortaklık Aleyhine Dava Açılması veya Davaya İlişkin Gelişmeler": "Lawsuit against the company or related developments",
+  "İdari Para Cezası": "Administrative fine", "Haber ve Söylentilere İlişkin Açıklama": "Statement on news and rumors",
+  "Sermaye Artırımı - Azaltımı İşlemlerine İlişkin Bildirim": "Capital increase / decrease notice", "Bedelsiz Sermaye Artırımı": "Bonus share issue",
+}));
+const KALIP = [
+  // tutma süreleri ve panel alt başlığı
+  [/Tutma süresi:/g, "Holding period:"],
+  [new RegExp(`~${N} ay; trend bozulana kadar \\(en fazla ${N} yıl\\)`, "g"), "~$1 months; until the trend breaks (max $2 years)"],
+  [new RegExp(`${N}–${N} ay; toparlanma hedefine kadar \\(en fazla ${N} hafta\\)`, "g"), "$1–$2 months; until the recovery target (max $3 weeks)"],
+  [new RegExp(`${N} işlem günü \\(en fazla ${N}\\)`, "g"), "$1 trading days (max $2)"],
+  [new RegExp(`${N} hafta \\(en fazla ${N}\\)`, "g"), "$1 weeks (max $2)"],
+  [/, dip alımı\./g, ", dip buying."], [/, kısa vade\./g, ", short term."], [/, orta vade\./g, ", medium term."], [/, uzun vade\./g, ", long term."],
+  // vade açıklamaları
+  [new RegExp(`Swing işlemler – birkaç gün ile ${N} hafta arası\\. Haber ve momentum ağırlıklı\\.`, "g"), "Swing trades – a few days to $1 weeks. News and momentum weighted."],
+  [new RegExp(`Pozisyon işlemleri – ${N} ile ${N} ay arası\\. Haftalık trend, haber etkisi daha az\\.`, "g"), "Position trades – $1 to $2 months. Weekly trend, less news impact."],
+  [new RegExp(`Yatırım – ${N} ay ile ${N} yıl arası\\. Uzun trend, momentum ve şirket temelleri ağırlıklı; günlük haber neredeyse etkisiz\\.`, "g"),
+    "Investing – $1 months to $2 years. Long trend, momentum and fundamentals weighted; daily news has almost no effect."],
+  [new RegExp(`Zirvesinden sert düşmüş varlıkları ${N} kademede toplama – ${N} ay ile ${N} yıl\\. Düşen bıçağı tutmamak için dönüş teyidi beklenir\\.`, "g"),
+    "Accumulating assets that fell sharply from their peak in $1 stages – $2 months to $3 years. A reversal confirmation is awaited to avoid catching a falling knife."],
+  [new RegExp(`Piyasa ${N} aylık ortalamasının altında: bu vadede yeni alım önerilmiyor`, "g"), "Market below its $1-month average: no new buys in this term"],
+  [new RegExp(`Piyasa güçlü \\(([^)]*?) ${N}G ort\\. üstünde\\)`, "g"), "Market strong ($1 above $2-day avg.)"],
+  [new RegExp(`Piyasa güçlü \\(([^)]*?) ${N} aylık ortalamanın üstünde`, "g"), "Market strong ($1 above its $2-month average"],
+  [new RegExp(`\\(([^()]*?) ${N} aylık ortalamanın altında\\)`, "g"), "($1 below its $2-month average)"],
+  [new RegExp(`oynaklığa göre risk ×${N}`, "g"), "risk ×$1 for volatility"],
+  // gerekçeler
+  [new RegExp(`${N} adetin riski ~${N} TL \\(hedef ${N} TL'nin üstünde\\)`, "g"), "risk of $1 units ~$2 TL (above the $3 TL target)"],
+  [new RegExp(`Bu vadenin sermaye payı yetersiz: ${N} adet riski ~${N} TL`, "g"), "This term's capital share is too small: risk of $1 unit ~$2 TL"],
+  [new RegExp(`Dip sermaye payı bu varlık için yetersiz \\(${N} kademe < ${N} adet\\)`, "g"), "Dip capital share too small for this asset ($1 per stage < $2 unit)"],
+  [new RegExp(`${N}([GH])lik zirve kırıldı`, "g"), (m, a, b) => `${a}-${b === "G" ? "day" : "week"} high broken`],
+  [new RegExp(`Aşırı satım \\(RSI ${N}\\) - dönüş teyidi bekle`, "g"), "Oversold (RSI $1) – wait for reversal confirmation"],
+  [new RegExp(`Aşırı alım \\(RSI ${N}\\)`, "g"), "Overbought (RSI $1)"],
+  [new RegExp(`Düşük özsermaye kârlılığı \\(%?${N}%?\\)`, "g"), "Low return on equity ($1%)"],
+  [new RegExp(`Yüksek özsermaye kârlılığı \\(%?${N}%?\\)`, "g"), "High return on equity ($1%)"],
+  [new RegExp(`Faber filtresi: piyasa endeksi ${N} aylık ortalamanın altında, yeni alım önerilmiyor`, "g"), "Faber filter: market index below its $1-month average, no new buys"],
+  [new RegExp(`Fiyat ${N}([GH]) ortalamanın (altında|üstünde)`, "g"), (m, a, b, c) => `Price ${c === "altında" ? "below" : "above"} the ${a}-${b === "G" ? "day" : "week"} average`],
+  [new RegExp(`Uzun trend zayıf \\(${N}([GH]) altı\\)`, "g"), (m, a, b) => `Long trend weak (below ${a}-${b === "G" ? "day" : "week"})`],
+  [new RegExp(`Trend yukarı \\(EMA${N}>EMA${N}\\)`, "g"), "Uptrend (EMA$1>EMA$2)"],
+  [new RegExp(`Gelir %?${N}%? geriledi`, "g"), "Revenue down $1%"], [new RegExp(`Gelir büyümesi %?${N}%?`, "g"), "Revenue growth $1%"],
+  [new RegExp(`Kâr %?${N}%? geriledi`, "g"), "Earnings down $1%"], [new RegExp(`Kâr büyümesi %?${N}%?`, "g"), "Earnings growth $1%"],
+  [new RegExp(`Hâlâ ${N} haftalık ortalamanın üstünde \\(uzun trend sağlam\\)`, "g"), "Still above the $1-week average (long trend intact)"],
+  [new RegExp(`PD/DD düşük \\(${N}\\)`, "g"), "Low P/B ($1)"], [new RegExp(`Pahalı \\(F/K ${N}\\)`, "g"), "Expensive (P/E $1)"], [new RegExp(`Ucuz \\(F/K ${N}\\)`, "g"), "Cheap (P/E $1)"],
+  [new RegExp(`Sektör haber etkisi (olumlu|olumsuz) \\(${N}\\)`, "g"), (m, a, b) => `Sector news impact ${a === "olumlu" ? "positive" : "negative"} (${b})`],
+  [new RegExp(`Şirkete özel haber (olumlu|olumsuz) \\(${N}\\)`, "g"), (m, a, b) => `Company-specific news ${a === "olumlu" ? "positive" : "negative"} (${b})`],
+  [new RegExp(`Son ${N} haftada %?${N}%? (düşüş|yükseliş)`, "g"), (m, a, b, c) => `${c === "düşüş" ? "Down" : "Up"} ${b}% in the last ${a} weeks`],
+  [new RegExp(`Son ${N} haftada en düşük RSI ${N}( → aşırı satım)?`, "g"), (m, a, b, c) => `Lowest RSI ${b} in the last ${a} weeks${c ? " → oversold" : ""}`],
+  [new RegExp(`Temel skor uygun \\(${N}\\)`, "g"), "Fundamental score OK ($1)"],
+  [new RegExp(`Temel skor zayıf \\(${N}\\) – zayıf şirketin dibi toplanmaz`, "g"), "Weak fundamental score ($1) – don't buy the dip of a weak company"],
+  [new RegExp(`Temettü verimi %?${N}%?`, "g"), "Dividend yield $1%"],
+  [new RegExp(`Zirveden %?${N}%? aşağıda \\(${N}H zirve ${N} dip ${N}\\)`, "g"), "$1% below peak ($2-week high $3, low $4)"],
+  [new RegExp(`Zirveden %?${N}%? aşağıda, stop ${N}`, "g"), "$1% below peak, stop $2"],
+  [/KAP: (.*) \(olumlu\)/g, "KAP: $1 (positive)"], [/KAP: (.*) \(olumsuz\)/g, "KAP: $1 (negative)"],
+  // portföy önerileri
+  [new RegExp(`Trend zayıfladı: skor ${N} \\(çıkış eşiği ${N}\\)`, "g"), "Trend weakened: score $1 (exit threshold $2)"],
+  [new RegExp(`${N}\\.? hedefe \\(${N}\\) yaklaştı \\(${N}R\\); yarısını sat, stop maliyete çekilir`, "g"), (m, a, b, c) => `Approaching target ${a.replace(/\.$/, "")} (${b}) (${c}R); sell half, stop moves to cost`],
+  [new RegExp(`Kârda \\(${N}R\\) ve AL sinyali sürüyor; yarım pozisyon ekleyin, stop ilk alış fiyatına çekilir`, "g"), "In profit ($1R) and BUY signal holds; add a half position, stop moves to the first entry price"],
+  [new RegExp(`Zararda \\(${N}R\\) ama stop \\(${N}\\) görülmedi; plana sadık kalın, stopa %?${N}%? var`, "g"), "At a loss ($1R) but stop ($2) not hit; stick to the plan, $3% to the stop"],
+  [new RegExp(`Trend sürüyor \\(${N}R\\)\\.`, "g"), "Trend intact ($1R)."], [/Toparlanma bekleniyor\./g, "Recovery expected."],
+  [new RegExp(`Stop ${N}, hedef ${N}`, "g"), "Stop $1, target $2"], [/ hedef /g, " target "],
+  [/Ortalama maliyetiniz yeniden hesaplanır, stop ilk alış fiyatına \(([^)]*)\) çekilir\./g, "Your average cost is recalculated; the stop moves to the first entry price ($1)."],
+  // bugün ekranı
+  [new RegExp(`(.+) pozisyonunun tamamını sat$`), "Sell all of $1"], [new RegExp(`(.+) pozisyonunun yarısını sat$`), "Sell half of $1"],
+  [new RegExp(`(.+) pozisyonuna ekle$`), "Add to $1"], [new RegExp(`(.+): dip alımının 1\\. kademesini al$`), "$1: buy the 1st dip stage"],
+  [new RegExp(`${N}\\. kademeyi (al|ekle)`, "g"), (m, a, b) => `${b === "al" ? "Buy" : "Add"} stage ${a}`],
+  [new RegExp(`^(.+) al$`), "Buy $1"],
+  [new RegExp(`${N} satış`, "g"), "$1 sale(s)"], [new RegExp(`${N} ekleme`, "g"), "$1 addition(s)"], [new RegExp(`${N} alım`, "g"), "$1 buy(s)"],
+  [/ analizine göre/g, " analysis"], [/Zaten (.+?) vadede portföyde\./g, "Already held in $1 term."],
+  [new RegExp(`${N} AL sinyali için bu vadenin nakdi yetmiyor \\(kalan ≈ ${N} TL\\)\\.`, "g"), "not enough cash in this term for $1 BUY signal(s) (left ≈ $2 TL)."],
+  [new RegExp(`${N} AL sinyali daha var ama ${N} pozisyon sınırı dolu\\.`, "g"), "$1 more BUY signal(s), but the $2-position limit is full."],
+  [new RegExp(`Türkiye piyasası ${N} aylık ortalamasının altında, yeni alım önerilmiyor\\.`, "g"), "Turkish market below its $1-month average, no new buys."],
+  [new RegExp(`(ABD|Türkiye ve ABD) piyasası ${N} aylık ortalamasının altında, yeni alım önerilmiyor\\.`, "g"), (m, a, b) => `${a === "ABD" ? "US" : "Turkish and US"} market below its ${b}-month average, no new buys.`],
+  // miktar notları
+  [/önerilen yok \(sermaye payı yetersiz\)/g, "no suggestion (capital share too small)"], [/önerilen/g, "suggested"],
+  [/elinizde/g, "you hold"], [/kısmi satış, kalan için stop maliyete çekilir/g, "partial sale, stop for the rest moves to cost"],
+  [/kısmi satış/g, "partial sale"], [/tamamı/g, "all"], [/tutar ≈/g, "amount ≈"], [/kâr\/zarar ≈/g, "P/L ≈"],
+  [new RegExp(`Önerilenin ${N} katı: stop olursa zarar da ${N} katı olur\\.`, "g"), "$1× the suggestion: if stopped, the loss is also $2×."],
+  // panel
+  [new RegExp(`Portföyünüzdeki ${N} (\\S+) için bugünkü öneri`, "g"), "Today's suggestion for your $1 $2"],
+  [new RegExp(`Destek ve direnç \\(son ${N} yıl\\)`, "g"), "Support and resistance (last $1 year)"],
+  [new RegExp(`KAP bildirimleri \\(son ${N} gün\\)`, "g"), "KAP disclosures (last $1 days)"],
+  [new RegExp(`${N} kez dokundu`, "g"), "touched $1×"], [new RegExp(`^Destek ${N}$`), "Support $1"], [new RegExp(`^Direnç ${N}$`), "Resistance $1"],
+  [new RegExp(`${N} hafta zirve / dip`, "g"), "$1-week high / low"], [new RegExp(`^${N} kademe$`), "stage $1"],
+  [new RegExp(`Ekle \\(${N} (\\S+)\\)`, "g"), "Add ($1 $2)"], [new RegExp(`Yarısını sat \\(${N} (\\S+)\\)`, "g"), "Sell half ($1 $2)"],
+  [new RegExp(`Tümünü sanal sat \\(${N} (\\S+)\\)`, "g"), "Sell all virtually ($1 $2)"],
+  [/teknik /g, "technical "], [/, haber /g, ", news "], [/, temel /g, ", fundamental "],
+  [new RegExp(`başlangıç ${N} TL`, "g"), "start $1 TL"],
+  // zaman ve durum
+  [new RegExp(`${N} dk önce`, "g"), "$1 min ago"], [new RegExp(`${N} saat önce`, "g"), "$1 h ago"], [new RegExp(`${N} gün önce`, "g"), "$1 days ago"],
+  [/Son analiz /g, "Last analysis "], [/Veriler güncellendi: /g, "Data updated: "], [new RegExp(`GitHub hatası ${N}`, "g"), "GitHub error $1"],
+  [/ sanal pozisyonun tamamı son analiz fiyatından kapatılsın mı\?/g, ": close the whole virtual position at the last analysis price?"],
+  [/ son analiz fiyatından sanal satılsın mı\?/g, " — sell virtually at the last analysis price?"],
+  [/ sanal alındı \(demo\)\./g, " bought virtually (demo)."], [/ satıldı \(demo\)\./g, " sold (demo)."], [/ sanal satıldı \(demo\)\./g, " sold virtually (demo)."],
+  [/\. kademe eklendi \(demo\)\./g, ". stage added (demo)."], [/ eklendi, ortalama maliyet /g, " added, average cost "],
+  [/× Yarısını sat/g, "× Sell half"], [/× Sat/g, "× Sell"], [/× Ekle/g, "× Add"], [/× Tut/g, "× Hold"],
+  [new RegExp(`^Hedef ${N}$`), "Target $1"], [new RegExp(`^Skor ${N}$`), "Score $1"],
+  [/Not: ekleme \(piramit\) kuralı geçmiş testte sınanmadı/g, "Note: the add (pyramiding) rule was not backtested"],
+  [/Program bugün eklemeyi öneriyor\./g, "The program suggests adding today."],
+  [/Program bugün eklemeyi önermiyor; eklerseniz kendi kararınız olur\./g, "The program does not suggest adding today; adding is your own call."],
+  [/Ortalama maliyetiniz yeniden hesaplanır\./g, "Your average cost is recalculated."],
+  [/(?<![\d])%([-+−]?[\d.,]*\d)/g, "$1%"],          // %5,2 → 5.2%
+  // olaylar
+  [/^Şirket haberi: /, "Company news: "], [/^Emtia haberi: /, "Commodity news: "], [/^KAP bildirimi/, "KAP disclosure"],
+];
+// Kelime/ifade parçaları (sektörler, varlık adları, olay türleri). Harf sınırıyla eşleşir.
+const PARCA = Object.entries({
+  "Banka": "Banks", "Holding": "Holding", "Havacılık": "Aviation", "Savunma": "Defense", "Perakende": "Retail", "Otomotiv": "Automotive",
+  "Enerji": "Energy", "Çelik": "Steel", "Kimya": "Chemicals", "Telekom": "Telecom", "Sanayi": "Industrials", "İnşaat": "Construction",
+  "Madencilik": "Mining", "Teknoloji": "Technology", "Yarı iletken": "Semiconductors", "Sağlık": "Healthcare", "Endeks fonu": "Index fund",
+  "Altın madencileri": "Gold miners", "Platin grubu": "Platinum group", "Gram altın": "Gold (gram)", "Gram gümüş": "Silver (gram)",
+  "Ons altın": "Gold (oz)", "Ons gümüş": "Silver (oz)", "Altın": "Gold", "Gümüş": "Silver", "Bakır": "Copper", "Platin": "Platinum", "Paladyum": "Palladium",
+  "Türkiye": "Turkey", "ABD": "US", "Kısa": "Short", "Orta": "Medium", "Uzun": "Long",
+  "ABD gümrük vergisi": "US tariffs", "Ateşkes / barış / yeniden yapılanma": "Ceasefire / peace / reconstruction", "Dolar zayıflıyor": "Dollar weakening",
+  "Faiz indirimi / parasal gevşeme": "Rate cut / monetary easing", "Fed faiz indirimi / güvercin Fed": "Fed rate cut / dovish Fed",
+  "Gümrük vergisi / ticaret savaşı": "Tariffs / trade war", "Merkez bankası altın alımı": "Central bank gold buying",
+  "Petrol düşüşü (ABD)": "Oil decline (US)", "Petrol fiyatı düşüşü": "Oil price decline", "Savunma ihracatı / ihale": "Defense exports / tenders",
+  "Turizm / yolcu rekoru": "Tourism / passenger record", "Yapay zeka yatırım dalgası": "AI investment wave",
+  "adet": "units", "gram": "g", "libre": "lb", "ons": "oz",
+}).sort((a, b) => b[0].length - a[0].length)
+  .map(([tr, en]) => [new RegExp(`(?<![\\p{L}])${tr.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}(?![\\p{L}])`, "gu"), en]);
+
+function cev(s) {
+  if (DIL !== "en" || s == null) return s;
+  s = String(s);
+  const k = s.trim();
+  if (!k || !/[A-Za-zÇĞİÖŞÜçğıöşüâ%]/.test(k)) return s;
+  let r = SOZ.get(k);
+  if (r == null) {
+    r = k;
+    for (const [re, rep] of KALIP) r = r.replace(re, rep);
+    const x = SOZ.get(r.trim()); if (x != null) r = x;
+    for (const [re, rep] of PARCA) r = r.replace(re, rep);
+  }
+  return r === k ? s : s.replace(k, r);
+}
+function cevirDOM(kok) {
+  if (DIL !== "en" || !kok) return;
+  const w = document.createTreeWalker(kok, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = w.nextNode())) {
+    const e = n.parentElement;
+    if (!e || e.closest("script,style")) continue;
+    const ham = e.closest(".ham");
+    const yeni = ham ? (SOZ.get(n.nodeValue.trim()) ?? n.nodeValue) : cev(n.nodeValue);
+    if (yeni !== n.nodeValue) n.nodeValue = yeni;
+  }
+  if (kok.querySelectorAll) for (const e of [kok, ...kok.querySelectorAll("[placeholder],[aria-label],[title]")])
+    for (const a of ["placeholder", "aria-label", "title"]) if (e.getAttribute?.(a)) { const y = cev(e.getAttribute(a)); if (y !== e.getAttribute(a)) e.setAttribute(a, y); }
+}
+if (DIL === "en") {
+  document.documentElement.lang = "en";
+  const _confirm = window.confirm.bind(window);
+  window.confirm = (m) => _confirm(cev(m));
+  const gozcu = new MutationObserver((ms) => {
+    gozcu.disconnect();
+    for (const m of ms) {
+      if (m.type === "characterData") cevirDOM(m.target.parentElement);
+      else m.addedNodes.forEach((x) => (x.nodeType === 3 ? cevirDOM(x.parentElement) : cevirDOM(x)));
+    }
+    gozcu.observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
+  document.addEventListener("DOMContentLoaded", () => { cevirDOM(document.body); gozcu.observe(document.body, { childList: true, subtree: true, characterData: true }); });
+}
+function dilDegistir(d) { try { localStorage.setItem("ab_dil", d); } catch (e) {} location.reload(); }
+
 "use strict";
 /* ============================================================ durum */
 const VADELER = ["kisa", "orta", "uzun", "dip"];
@@ -308,13 +546,13 @@ function ne_zaman(d) {
   if (dk < 60 * 24) return `${Math.round(dk / 60)} saat önce`;
   return `${Math.round(dk / 1440)} gün önce`;
 }
-const tarih = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleDateString("tr-TR", { day: "numeric", month: "short" }); };
+const tarih = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleDateString(LOC, { day: "numeric", month: "short" }); };
 const $ = (s, k = document) => k.querySelector(s);
 const $$ = (s, k = document) => [...k.querySelectorAll(s)];
 const esc = (x) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const sayi = (x, d = 2) => (x == null || isNaN(x) ? "–" : Number(x).toLocaleString("tr-TR", { maximumFractionDigits: d }));
-const tutar = (x) => Math.round(x).toLocaleString("tr-TR") + " TL";
-const tl = (x) => (x >= 0 ? "+" : "−") + Math.abs(Math.round(x)).toLocaleString("tr-TR") + " TL";
+const sayi = (x, d = 2) => (x == null || isNaN(x) ? "–" : Number(x).toLocaleString(LOC, { maximumFractionDigits: d }));
+const tutar = (x) => Math.round(x).toLocaleString(LOC) + " TL";
+const tl = (x) => (x >= 0 ? "+" : "−") + Math.abs(Math.round(x)).toLocaleString(LOC) + " TL";
 
 function bildir(m, sure = 3500) {
   const b = $("#bildirim"); b.textContent = m; b.classList.add("goster");
@@ -386,7 +624,7 @@ async function verileriYukle() {
     S.analiz = analiz;
     if (!S.demo || !Object.keys(S.portfoy).length) VADELER.forEach((v, i) => (S.portfoy[v] = ps[i] || { acik: {}, kapali: [] }));
     const t = analizZamani(analiz.tarih);
-    $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`;
+    $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString(LOC, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`;
     if (!S.mesgul) durumGoster("");
     ciz();
   } catch (e) {
@@ -484,7 +722,7 @@ function cizBugun() {
   const ozet = toplam ? [sat.length && `${sat.length} satış`, ekle.length && `${ekle.length} ekleme`, al.length && `${al.length} alım`].filter(Boolean).join(", ")
     : "Bugün yapılacak işlem yok";
   $("#bugunIcerik").innerHTML = `
-    <div class="bugun-ust"><div class="vade-etiket">${esc(analizZamani(S.analiz.tarih).toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }))} analizine göre</div><h2>${ozet}</h2>
+    <div class="bugun-ust"><div class="vade-etiket">${esc(analizZamani(S.analiz.tarih).toLocaleString(LOC, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }))} analizine göre</div><h2>${ozet}</h2>
       ${toplam ? "<p>Bir öneriye dokunun; miktarı kontrol edip onaylayın.</p>" : "<p>Portföyünüzdeki pozisyonları tutun, stoplar yerinde.</p>"}</div>
     ${bolum("Önce satışlar", sat)}${bolum("Eklemeler", ekle)}${bolum("Yeni alımlar", al)}
     ${notlar.length ? `<h3 class="bolum-baslik">Bilgi</h3><ul class="bugun-not">${notlar.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : ""}
@@ -590,9 +828,9 @@ function cizPortfoy() {
 
 function cizHaber() {
   const o = S.analiz.olaylar || [];
-  const ozet = S.analiz.ozet ? `<div class="haber"><h3>Piyasa yorumu</h3><p>${esc(S.analiz.ozet)}</p></div>` : "";
+  const ozet = S.analiz.ozet ? `<div class="haber"><h3>Piyasa yorumu</h3><p class="ham">${esc(S.analiz.ozet)}</p></div>` : "";
   $("#haberIcerik").innerHTML = ozet + (o.length ? [...o].sort((a, b) => b.agirlik - a.agirlik).map((h) => `
-    <div class="haber"><h3>${esc(h.olay.replace(/: (\w+)$/, (m, k) => ": " + ad(k)))}</h3><p>${esc(h.baslik)}</p>
+    <div class="haber"><h3>${esc(h.olay.replace(/: (\w+)$/, (m, k) => ": " + ad(k)))}</h3><p class="ham">${esc(h.baslik)}</p>
       <div class="etiketler">${(h.kisiler || []).map((k) => `<span class="etiket kisi">${esc(k.length <= 4 ? k.toLocaleUpperCase("tr-TR") : buyukHarf(k))}</span>`).join("")}
         ${Object.entries(h.etki || {}).map(([s, e]) => `<span class="etiket ${e > 0 ? "pozitif" : "negatif"}">${esc(ad(sek(s)))} ${e > 0 ? "▲" : "▼"}</span>`).join("")}
         <span class="etiket">${esc(h.kaynak)}</span></div></div>`).join("")
@@ -656,7 +894,7 @@ function panelAc(vade, kod, mod) {
     <div class="vade-etiket">Neden?</div><ul class="gerekce">${(x.gerekce || []).map((g) => `<li>${esc(g)}</li>`).join("") || "<li>–</li>"}</ul>
     ${x.kap?.length ? `<div class="vade-etiket">KAP bildirimleri (son 3 gün)</div><ul class="kap-liste">${x.kap.map((b) => `<li>
       <span class="kap-nokta ${b.etki > 0 ? "arti" : b.etki < 0 ? "eksi" : ""}">${b.etki > 0 ? "▲" : b.etki < 0 ? "▼" : "•"}</span>
-      <span>${b.link ? `<a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.baslik)}</a>` : esc(b.baslik)}<small>${esc(b.tarih)}</small></span></li>`).join("")}</ul>` : ""}
+      <span>${b.link ? `<a class="ham" href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.baslik)}</a>` : `<span class="ham">${esc(b.baslik)}</span>`}<small>${esc(b.tarih)}</small></span></li>`).join("")}</ul>` : ""}
     ${eylem}`;
   miktarNotGuncelle();
   $("#ortu").classList.add("acik"); $("#panel").classList.add("acik");
@@ -767,7 +1005,7 @@ async function yenile() {
     }
     durumGoster("");
     if (S.analiz?.tarih === eski) bildir("Analiz bitti ama yeni veri henüz görünmüyor. Bir dakika sonra sayfayı yenileyin.", 6000);
-    else bildir("Veriler güncellendi: " + analizZamani(S.analiz.tarih).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }));
+    else bildir("Veriler güncellendi: " + analizZamani(S.analiz.tarih).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }));
   } catch (e) { durumGoster(e.message); }
   finally { S.mesgul = false; btn.classList.remove("donuyor"); }
 }
@@ -843,6 +1081,8 @@ document.addEventListener("click", (ev) => {
   if (t.dataset.islem) return islemYap(t.dataset.islem, t.dataset.vade, t.dataset.kod, t.dataset.lot ? parseFloat(t.dataset.lot) : null);
 });
 $("#yenileBtn").addEventListener("click", yenile);
+$("#dilBtn").textContent = DIL === "en" ? "TR" : "EN";
+$("#dilBtn").addEventListener("click", () => dilDegistir(DIL === "en" ? "tr" : "en"));
 $("#kaydetBtn").addEventListener("click", async () => {
   const a = { kullanici: $("#aKullanici").value.trim(), depo: $("#aDepo").value.trim(), token: $("#aToken").value.trim(), telegram: $("#aTelegram").checked, oto: $("#aOto").checked };
   if (!a.kullanici || !a.depo || !a.token) return bildir("Üç alanı da doldurun.");
@@ -860,7 +1100,7 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") panelKapat
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js");
 verileriYukle().then(otoGuncelle);
 setInterval(() => { if (S.analiz && !S.mesgul) { const t = analizZamani(S.analiz.tarih);       // "x dk önce" yazısını tazele
-  $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`; } }, 60000);
+  $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString(LOC, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`; } }, 60000);
 </script>
 </body>
 </html>
