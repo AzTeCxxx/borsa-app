@@ -238,6 +238,7 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
     <label for="aToken">Erişim anahtarı (token)</label>
     <input type="password" id="aToken" autocomplete="off" placeholder="github_pat_…">
     <div class="ipucu">Yalnızca bu telefonda saklanır. Telefonu kaybederseniz GitHub'dan anahtarı silin.</div>
+    <div class="yan"><input type="checkbox" id="aOto"><label for="aOto" style="margin:0;font-weight:500">Uygulamayı açınca bugünün analizi yoksa otomatik başlat</label></div>
     <div class="yan"><input type="checkbox" id="aTelegram"><label for="aTelegram" style="margin:0;font-weight:500">Yenilediğimde raporu Telegram'a da gönder</label></div>
     <div style="display:flex;gap:10px;margin-top:18px">
       <button class="btn btn-al" id="kaydetBtn">Kaydet ve bağlan</button>
@@ -755,6 +756,30 @@ async function yenile() {
   finally { S.mesgul = false; btn.classList.remove("donuyor"); }
 }
 
+/* ============================================================ açılışta otomatik güncelleme
+   GitHub'ın zamanlanmış çalıştırmaları saatlerce gecikebiliyor. Uygulama açıldığında bugünün (TR saatiyle)
+   analizi yoksa, hafta içi 07:30'dan sonra analizi kendisi başlatır. Günde bir kez dener. */
+const trTarih = (d) => new Date(d.getTime() + 3 * 3600e3).toISOString().slice(0, 10);
+async function otoGuncelle() {
+  if (S.demo || !S.ayar || !S.analiz || S.mesgul || S.ayar.oto === false) return;
+  const tr = new Date(Date.now() + 3 * 3600e3), gun = tr.getUTCDay();
+  if (gun === 0 || gun === 6 || tr.getUTCHours() * 60 + tr.getUTCMinutes() < 7 * 60 + 30) return;
+  const bugun = trTarih(new Date());
+  if (trTarih(analizZamani(S.analiz.tarih)) === bugun || localStorage.getItem("ab_oto") === bugun) return;
+  try {                                                   // zaten kuyrukta/çalışıyorsa ikinciyi başlatma
+    const r = await fetch(`${GH.taban()}/actions/workflows/analiz.yml/runs?per_page=5&t=${Date.now()}`, { headers: GH.baslik(), cache: "no-store" });
+    const calisan = r.ok && ((await r.json()).workflow_runs || []).some((x) => ["queued", "in_progress", "waiting", "pending"].includes(x.status));
+    if (calisan) { bildir("Bugünün analizi şu an bulutta çalışıyor; birkaç dakika sonra yenileyin.", 5000); return; }
+  } catch (e) { /* kontrol edilemedi: yine de dene */ }
+  localStorage.setItem("ab_oto", bugun);
+  bildir("Bugünün analizi henüz yapılmamış; otomatik başlatıldı (3–6 dk).", 5000);
+  yenile();
+}
+document.addEventListener("visibilitychange", async () => {      // uygulama arka plandan öne gelince
+  if (document.visibilityState !== "visible" || S.mesgul || S.demo) return;
+  await verileriYukle(); otoGuncelle();
+});
+
 /* ============================================================ gezinme ve olaylar */
 const BASLIK = { bugun: "Bugün", sinyal: "Sinyaller", portfoy: "Portföy", haber: "Haberler", ayar: "Ayarlar" };
 function ekranGoster(e) {
@@ -768,7 +793,7 @@ function ekranGoster(e) {
 function ayarDoldur() {
   const a = S.ayar || {};
   $("#aKullanici").value = a.kullanici || ""; $("#aDepo").value = a.depo || "borsa-asistani";
-  $("#aToken").value = a.token || ""; $("#aTelegram").checked = !!a.telegram;
+  $("#aToken").value = a.token || ""; $("#aTelegram").checked = !!a.telegram; $("#aOto").checked = a.oto !== false;
 }
 
 document.addEventListener("click", (ev) => {
@@ -803,7 +828,7 @@ document.addEventListener("click", (ev) => {
 });
 $("#yenileBtn").addEventListener("click", yenile);
 $("#kaydetBtn").addEventListener("click", async () => {
-  const a = { kullanici: $("#aKullanici").value.trim(), depo: $("#aDepo").value.trim(), token: $("#aToken").value.trim(), telegram: $("#aTelegram").checked };
+  const a = { kullanici: $("#aKullanici").value.trim(), depo: $("#aDepo").value.trim(), token: $("#aToken").value.trim(), telegram: $("#aTelegram").checked, oto: $("#aOto").checked };
   if (!a.kullanici || !a.depo || !a.token) return bildir("Üç alanı da doldurun.");
   S.ayar = a; S.demo = false; localStorage.setItem("ab_ayar", JSON.stringify(a)); localStorage.removeItem("ab_demo");
   S.portfoy = {}; bildir("Bağlanılıyor…"); await verileriYukle();
@@ -817,7 +842,7 @@ $("#unutBtn").addEventListener("click", () => {
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") panelKapat(); });
 
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js");
-verileriYukle();
+verileriYukle().then(otoGuncelle);
 setInterval(() => { if (S.analiz && !S.mesgul) { const t = analizZamani(S.analiz.tarih);       // "x dk önce" yazısını tazele
   $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString("tr-TR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`; } }, 60000);
 </script>
