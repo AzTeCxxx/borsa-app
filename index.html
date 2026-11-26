@@ -232,7 +232,7 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 <section id="ekran-portfoy" class="gizli"><main id="portfoyIcerik"></main></section>
 
 <!-- HABERLER -->
-<section id="ekran-haber" class="gizli"><main id="haberIcerik"></main></section>
+<section id="ekran-haber" class="gizli"><main id="haberIcerik" class="ceviri-yok"></main></section>
 
 <!-- AYARLAR -->
 <section id="ekran-ayar" class="gizli">
@@ -492,7 +492,7 @@ function cev(s) {
 }
 function cevirDugum(n) {                    // tek metin düğümü
   const e = n.parentElement;
-  if (!e || e.closest("script,style")) return;
+  if (!e || e.closest("script,style,.ceviri-yok")) return;   // haberler: olduğu gibi
   const yeni = e.closest(".ham") ? (SOZ.get(n.nodeValue.trim()) ?? n.nodeValue) : cev(n.nodeValue);
   if (yeni !== n.nodeValue) n.nodeValue = yeni;
 }
