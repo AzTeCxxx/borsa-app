@@ -281,7 +281,13 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 /* ============================================================ dil (TR / EN)
    Türkçe metinler ekrana yazıldıktan sonra İngilizceye çevrilir: önce tam eşleşme (SOZ), sonra kalıplar (KALIP,
    sayıları yakalar), en son kelime/ifade parçaları (PARCA). Haber başlıkları (.ham) orijinal dilinde kalır. */
-const DIL = (() => { try { return localStorage.getItem("ab_dil") || "tr"; } catch (e) { return "tr"; } })();
+const DIL = (() => {                       // adres çubuğunda ?dil=tr veya ?dil=en ile de değiştirilebilir
+  try {
+    const q = new URLSearchParams(location.search).get("dil");
+    if (q === "tr" || q === "en") localStorage.setItem("ab_dil", q);
+    return localStorage.getItem("ab_dil") || "tr";
+  } catch (e) { return "tr"; }
+})();
 const LOC = DIL === "en" ? "en-US" : "tr-TR";
 const N = "([-+−]?[\\d.,]+)";
 const SOZ = new Map(Object.entries({
@@ -484,17 +490,18 @@ function cev(s) {
   }
   return r === k ? s : s.replace(k, r);
 }
+function cevirDugum(n) {                    // tek metin düğümü
+  const e = n.parentElement;
+  if (!e || e.closest("script,style")) return;
+  const yeni = e.closest(".ham") ? (SOZ.get(n.nodeValue.trim()) ?? n.nodeValue) : cev(n.nodeValue);
+  if (yeni !== n.nodeValue) n.nodeValue = yeni;
+}
 function cevirDOM(kok) {
   if (DIL !== "en" || !kok) return;
+  if (kok.nodeType === 3) return cevirDugum(kok);
   const w = document.createTreeWalker(kok, NodeFilter.SHOW_TEXT);
   let n;
-  while ((n = w.nextNode())) {
-    const e = n.parentElement;
-    if (!e || e.closest("script,style")) continue;
-    const ham = e.closest(".ham");
-    const yeni = ham ? (SOZ.get(n.nodeValue.trim()) ?? n.nodeValue) : cev(n.nodeValue);
-    if (yeni !== n.nodeValue) n.nodeValue = yeni;
-  }
+  while ((n = w.nextNode())) cevirDugum(n);
   if (kok.querySelectorAll) for (const e of [kok, ...kok.querySelectorAll("[placeholder],[aria-label],[title]")])
     for (const a of ["placeholder", "aria-label", "title"]) if (e.getAttribute?.(a)) { const y = cev(e.getAttribute(a)); if (y !== e.getAttribute(a)) e.setAttribute(a, y); }
 }
@@ -502,15 +509,19 @@ if (DIL === "en") {
   document.documentElement.lang = "en";
   const _confirm = window.confirm.bind(window);
   window.confirm = (m) => _confirm(cev(m));
+  const ayar = { childList: true, subtree: true, characterData: true };
   const gozcu = new MutationObserver((ms) => {
     gozcu.disconnect();
-    for (const m of ms) {
-      if (m.type === "characterData") cevirDOM(m.target.parentElement);
-      else m.addedNodes.forEach((x) => (x.nodeType === 3 ? cevirDOM(x.parentElement) : cevirDOM(x)));
-    }
-    gozcu.observe(document.body, { childList: true, subtree: true, characterData: true });
+    try {
+      const kokler = new Set();                 // her eklenen düğüm bir kez çevrilir (tüm sayfa değil)
+      for (const m of ms) {
+        if (m.type === "characterData") kokler.add(m.target);
+        else m.addedNodes.forEach((x) => kokler.add(x));
+      }
+      for (const k of kokler) if (k.isConnected) cevirDOM(k);
+    } finally { gozcu.observe(document.body, ayar); }
   });
-  document.addEventListener("DOMContentLoaded", () => { cevirDOM(document.body); gozcu.observe(document.body, { childList: true, subtree: true, characterData: true }); });
+  document.addEventListener("DOMContentLoaded", () => { cevirDOM(document.body); gozcu.observe(document.body, ayar); });
 }
 function dilDegistir(d) { try { localStorage.setItem("ab_dil", d); } catch (e) {} location.reload(); }
 
