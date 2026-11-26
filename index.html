@@ -177,6 +177,11 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
 .is-miktar{font-weight:800;font-size:17px;white-space:nowrap} .is-alt{display:block;color:var(--gri);font-size:13px;margin-top:4px;line-height:1.4}
 .bugun-not{margin:0;padding-left:18px;color:var(--gri);font-size:13.5px} .bugun-not li{margin-bottom:6px}
 .uyari-alt{color:var(--gri);font-size:12px;margin:18px 2px}
+.seviye{list-style:none;padding:0;margin:4px 0 4px;border-left:3px solid var(--cizgi)}
+.seviye li{display:grid;grid-template-columns:78px 1fr auto;align-items:baseline;gap:8px;padding:5px 10px;font-size:14px}
+.seviye li span{color:var(--gri);font-size:13px} .seviye li small{color:var(--gri);font-size:12px}
+.seviye li.dir b{color:var(--kirmizi)} .seviye li.des b{color:var(--yesil)} .seviye li.fiyat{background:var(--zemin);font-weight:700}
+.seviye-not{display:block;color:var(--gri);font-size:12px;margin-bottom:14px}
 .miktar-not{font-size:13px;color:var(--gri);margin:-4px 0 12px;text-align:center}
 .kademeler{display:flex;gap:6px;margin:6px 0 16px}
 .kademeler div{flex:1;border:1px solid var(--cizgi);border-radius:10px;padding:8px;text-align:center;font-size:13px}
@@ -647,7 +652,7 @@ function panelAc(vade, kod, mod) {
     <div style="display:flex;align-items:center;gap:10px"><h2 id="panelBaslik" style="flex:1">${esc(ad(kod))}</h2>${rozet(x.karar, false)}</div>
     <div class="alt-baslik">${esc(sek(x.sektor))}, ${vade === "dip" ? "dip alımı" : VADE_AD[vade].toLocaleLowerCase("tr-TR") + " vade"}. Tutma süresi: ${esc(x.tutma)}</div>
     ${pos ? `<div class="vade-etiket" style="margin-top:14px">Portföyünüzdeki ${sayi(pos.lot)} ${esc(x.miktar)} için bugünkü öneri</div>${oneriKutu(o)}` : ""}
-    <div class="detay">${detay}</div>${kademeler}
+    <div class="detay">${detay}</div>${seviyeler(x)}${kademeler}
     <div class="vade-etiket">Neden?</div><ul class="gerekce">${(x.gerekce || []).map((g) => `<li>${esc(g)}</li>`).join("") || "<li>–</li>"}</ul>
     ${x.kap?.length ? `<div class="vade-etiket">KAP bildirimleri (son 3 gün)</div><ul class="kap-liste">${x.kap.map((b) => `<li>
       <span class="kap-nokta ${b.etki > 0 ? "arti" : b.etki < 0 ? "eksi" : ""}">${b.etki > 0 ? "▲" : b.etki < 0 ? "▼" : "•"}</span>
@@ -671,6 +676,17 @@ function miktarNotGuncelle() {
   n.innerHTML = t;
 }
 document.addEventListener("input", (e) => { if (["miktarGir", "satGir"].includes(e.target.id)) miktarNotGuncelle(); });
+function seviyeler(x) {
+  const d = x.destek || [], r = x.direnc || [];
+  if (!d.length && !r.length) return "";
+  const yuzde = (v) => `${v > x.fiyat ? "+" : "−"}%${sayi(Math.abs(v / x.fiyat - 1) * 100, 1)}`;
+  const satir = (sinif, ad, l) => `<li class="${sinif}"><span>${ad}</span><b>${sayi(l.seviye)}</b><small>${yuzde(l.seviye)}${l.guc > 1 ? ` · ${l.guc} kez dokundu` : ""}</small></li>`;
+  return `<div class="vade-etiket">Destek ve direnç (son 1 yıl)</div><ul class="seviye">
+    ${[...r].reverse().map((l, i) => satir("dir", `Direnç ${r.length - i}`, l)).join("")}
+    <li class="fiyat"><span>Şimdi</span><b>${sayi(x.fiyat)}</b><small></small></li>
+    ${d.map((l, i) => satir("des", `Destek ${i + 1}`, l)).join("")}</ul>
+    <small class="seviye-not">Fiyatın geçmişte döndüğü bölgeler. Direnç üstünde kapanış güç, destek altında kapanış zayıflık işaretidir.</small>`;
+}
 function panelKapat() { $("#ortu").classList.remove("acik"); $("#panel").classList.remove("acik"); }
 
 /* ============================================================ işlemler */
