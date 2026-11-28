@@ -245,6 +245,9 @@ nav.alt button[aria-current=page]{color:var(--lacivert)}
     <label for="aToken">Erişim anahtarı (token)</label>
     <input type="password" id="aToken" autocomplete="off" placeholder="github_pat_…">
     <div class="ipucu">Yalnızca bu telefonda saklanır. Telefonu kaybederseniz GitHub'dan anahtarı silin.</div>
+    <label for="aProfil">Profil (arkadaşlar için)</label>
+    <input type="text" id="aProfil" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="boş bırakın (ana kullanıcı)">
+    <div class="ipucu">Sistemi paylaştığınız arkadaşınız buraya kendi profil adını yazar (ör. ali). Analizler ortaktır, sanal portföy ayrıdır.</div>
     <div class="yan"><input type="checkbox" id="aOto"><label for="aOto" style="margin:0;font-weight:500">Uygulamayı açınca bugünün analizi yoksa otomatik başlat</label></div>
     <div class="yan"><input type="checkbox" id="aTelegram"><label for="aTelegram" style="margin:0;font-weight:500">Yenilediğimde raporu Telegram'a da gönder</label></div>
     <div style="display:flex;gap:10px;margin-top:18px">
@@ -335,7 +338,10 @@ const SOZ = new Map(Object.entries({
   "Ana ekrana ekleme": "Adding to home screen", "veya": "or", "ör. isasaglam": "e.g. isasaglam", "Paylaş düğmesi →": "Share button →",
   "⋮ menüsü →": "⋮ menu →", "butonu analizi orada başlatır,": "button starts the analysis there,",
   "işlemleri de oraya kaydedilir. Bilgisayarınızın açık olması gerekmez.": "and trades are saved there too. Your computer does not need to be on.",
-  "Dil": "Language",
+  "Dil": "Language", "Profil (arkadaşlar için)": "Profile (for friends)", "boş bırakın (ana kullanıcı)": "leave empty (main user)",
+  "Sistemi paylaştığınız arkadaşınız buraya kendi profil adını yazar (ör. ali). Analizler ortaktır, sanal portföy ayrıdır.":
+    "A friend you share the system with enters their own profile name here (e.g. ali). Analyses are shared; the virtual portfolio is separate.",
+  "Profil adı yalnızca küçük harf, rakam, - ve _ içerebilir (ör. ali).": "Profile name may contain only lowercase letters, digits, - and _ (e.g. ali).",
   // bildirimler
   "Önceki işlem bitmeden yenisi başlatılamaz.": "Wait for the previous action to finish.", "Geçerli bir miktar girin.": "Enter a valid quantity.",
   "Şu an bir işlem sürüyor.": "An action is already running.", "Demo verisi yeniden yüklendi.": "Demo data reloaded.",
@@ -624,18 +630,25 @@ const DEMO = {
   async dosya(yol) { const r = await fetch(`demo/${yol}?t=${Date.now()}`); return r.ok ? r.json() : null; },
 };
 
+const profil = () => (!S.demo && S.ayar?.profil) || "";
+const pyol = (d) => (profil() ? `profiller/${profil()}/${d}` : d);
 async function verileriYukle() {
   const no = (S.yukNo = (S.yukNo || 0) + 1);          // yalnızca en son başlatılan yükleme sonucu uygular
   const kaynak = S.demo ? DEMO : GH;
   if (!S.demo && !S.ayar) { ekranGoster("ayar"); $("#guncel").textContent = "Bağlantı ayarları gerekli"; return; }
   try {
-    const [analiz, ...ps] = await Promise.all([kaynak.dosya("son_analiz.json"), ...VADELER.map((v) => kaynak.dosya(`portfoy_${v}.json`))]);
+    const [analiz, pa, ...ps] = await Promise.all([kaynak.dosya("son_analiz.json"), profil() ? kaynak.dosya(pyol("profil_analiz.json")) : null,
+      ...VADELER.map((v) => kaynak.dosya(pyol(`portfoy_${v}.json`)))]);
     if (no !== S.yukNo) return;
     if (!analiz) throw new Error("Depoda henüz analiz yok. Yenile butonuna basın.");
+    if (profil()) for (const v of Object.keys(analiz.sonuc || {})) {   // önerileri bu profilin portföyüne göre göster
+      analiz.sonuc[v].oneriler = pa?.oneriler?.[v] || {};
+      analiz.sonuc[v].islemler = pa?.islemler?.[v] || [];
+    }
     S.analiz = analiz;
     if (!S.demo || !Object.keys(S.portfoy).length) VADELER.forEach((v, i) => (S.portfoy[v] = ps[i] || { acik: {}, kapali: [] }));
     const t = analizZamani(analiz.tarih);
-    $("#guncel").textContent = (S.demo ? "Demo: " : "") + "Son analiz " + t.toLocaleString(LOC, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`;
+    $("#guncel").textContent = (S.demo ? "Demo: " : profil() ? profil() + " · " : "") + "Son analiz " + t.toLocaleString(LOC, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }) + ` (${ne_zaman(t)})`;
     if (!S.mesgul) durumGoster("");
     ciz();
   } catch (e) {
@@ -954,9 +967,9 @@ async function islemYap(tur, vade, kod, satLot) {
   if (S.demo) return demoIslem(tur, vade, kod, parseFloat(lot));
   S.mesgul = true;
   try {
-    const onceki = await GH.tetikle("islem.yml", { tur, vade, kod, lot });
+    const onceki = await GH.tetikle("islem.yml", { tur, vade, kod, lot, profil: profil() });
     await GH.bekle("islem.yml", onceki, { al: `${ad(kod)} alınıyor`, ekle: `${ad(kod)} ekleniyor` }[tur] || `${ad(kod)} satılıyor`);
-    const sonuc = await GH.dosya("islem_sonuc.json");
+    const sonuc = await GH.dosya(pyol("islem_sonuc.json"));
     await verileriYukle();
     durumGoster(""); bildir(sonuc?.mesaj || "İşlem tamamlandı.", 5000);
   } catch (e) { durumGoster(e.message); }
@@ -1004,7 +1017,7 @@ async function yenile() {
   if (!S.ayar) return ekranGoster("ayar");
   S.mesgul = true; btn.classList.add("donuyor");
   try {
-    const onceki = await GH.tetikle("analiz.yml", { telegram: String(!!S.ayar.telegram) });
+    const onceki = await GH.tetikle("analiz.yml", { telegram: String(!!S.ayar.telegram && !profil()) });
     bildir("Analiz başlatıldı. Genellikle 3–6 dakika sürer; uygulamayı kapatabilirsiniz.", 5000);
     await GH.bekle("analiz.yml", onceki, "Analiz");
     const eski = S.analiz?.tarih;
@@ -1058,7 +1071,7 @@ function ekranGoster(e) {
 function ayarDoldur() {
   const a = S.ayar || {};
   $("#aKullanici").value = a.kullanici || ""; $("#aDepo").value = a.depo || "borsa-asistani";
-  $("#aToken").value = a.token || ""; $("#aTelegram").checked = !!a.telegram; $("#aOto").checked = a.oto !== false;
+  $("#aToken").value = a.token || ""; $("#aTelegram").checked = !!a.telegram; $("#aOto").checked = a.oto !== false; $("#aProfil").value = a.profil || "";
 }
 
 document.addEventListener("click", (ev) => {
@@ -1095,7 +1108,10 @@ $("#yenileBtn").addEventListener("click", yenile);
 $("#dilBtn").textContent = DIL === "en" ? "TR" : "EN";
 $("#dilBtn").addEventListener("click", () => dilDegistir(DIL === "en" ? "tr" : "en"));
 $("#kaydetBtn").addEventListener("click", async () => {
-  const a = { kullanici: $("#aKullanici").value.trim(), depo: $("#aDepo").value.trim(), token: $("#aToken").value.trim(), telegram: $("#aTelegram").checked, oto: $("#aOto").checked };
+  const a = { kullanici: $("#aKullanici").value.trim(), depo: $("#aDepo").value.trim(), token: $("#aToken").value.trim(), telegram: $("#aTelegram").checked, oto: $("#aOto").checked,
+    profil: $("#aProfil").value.trim().toLowerCase() };
+  if (a.profil && !/^[a-z0-9_-]{1,20}$/.test(a.profil)) return bildir("Profil adı yalnızca küçük harf, rakam, - ve _ içerebilir (ör. ali).", 5000);
+  if (a.profil) a.telegram = false;                      // Telegram raporu ana kullanıcıya gider
   if (!a.kullanici || !a.depo || !a.token) return bildir("Üç alanı da doldurun.");
   S.ayar = a; S.demo = false; localStorage.setItem("ab_ayar", JSON.stringify(a)); localStorage.removeItem("ab_demo");
   S.portfoy = {}; bildir("Bağlanılıyor…"); await verileriYukle();
